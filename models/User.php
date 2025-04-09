@@ -242,4 +242,66 @@ class User {
         
         return ['success' => false, 'message' => 'Failed to reset password'];
     }
+
+    // Add these methods to the User class in models/User.php
+
+    // Update user profile
+    public function updateProfile($user_id, $display_name) {
+        $stmt = $this->db->prepare("UPDATE users SET display_name = ? WHERE id = ?");
+        $stmt->bind_param("si", $display_name, $user_id);
+        
+        if ($stmt->execute()) {
+            return [
+                'success' => true
+            ];
+        }
+        
+        return [
+            'success' => false,
+            'message' => 'Failed to update profile: ' . $stmt->error
+        ];
+    }
+
+    // Change user password
+    public function changePassword($user_id, $current_password, $new_password) {
+        // First verify current password
+        $stmt = $this->db->prepare("SELECT password FROM users WHERE id = ?");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows === 1) {
+            $user = $result->fetch_assoc();
+            
+            if (!password_verify($current_password, $user['password'])) {
+                return [
+                    'success' => false,
+                    'message' => 'Current password is incorrect'
+                ];
+            }
+            
+            // Hash new password
+            $hashed_password = password_hash($new_password, PASSWORD_BCRYPT, ['cost' => PASSWORD_HASH_COST]);
+            
+            // Update password
+            $stmt = $this->db->prepare("UPDATE users SET password = ? WHERE id = ?");
+            $stmt->bind_param("si", $hashed_password, $user_id);
+            
+            if ($stmt->execute()) {
+                return [
+                    'success' => true
+                ];
+            }
+            
+            return [
+                'success' => false,
+                'message' => 'Failed to update password: ' . $stmt->error
+            ];
+        }
+        
+        return [
+            'success' => false,
+            'message' => 'User not found'
+        ];
+    }
 }
