@@ -15,12 +15,25 @@ class NoteController {
     }
     
     // Display all notes (dashboard)
+    // Display all notes (dashboard)
     public function index() {
         // Get user ID from session
         $user_id = Session::getUserId();
         
         // Get view preference (default to grid)
-        $view = $_GET['view'] ?? 'grid';
+        $view = isset($_GET['view']) && $_GET['view'] === 'list' ? 'list' : 'grid';
+        
+        // Store view preference in session
+        if (isset($_GET['view'])) {
+            Session::set('notes_view_' . $user_id, $view);
+        } else {
+            // Use saved preference if available
+            $savedView = Session::get('notes_view_' . $user_id);
+            if ($savedView) {
+                $view = $savedView;
+            }
+        }
+        
         $label_filter = isset($_GET['label']) ? intval($_GET['label']) : null;
         $search = $_GET['search'] ?? '';
         
