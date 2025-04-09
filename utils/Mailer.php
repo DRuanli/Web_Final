@@ -1,4 +1,9 @@
 <?php
+require_once 'utils/Session.php';
+require_once 'utils/Validator.php';
+require_once 'utils/Security.php';
+require_once 'utils/Mailer.php';  // Make sure this is included
+
 // Check and load Composer's autoloader if available
 if (file_exists(ROOT_PATH . '/vendor/autoload.php')) {
     require_once ROOT_PATH . '/vendor/autoload.php';
