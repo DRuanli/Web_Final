@@ -1,3 +1,7 @@
+<?php
+require_once MODELS_PATH . '/User.php';
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -35,7 +39,7 @@
     <?php 
     // Notification for unverified accounts
     if (Session::isLoggedIn()): 
-        $user = (new User())->getById(Session::getUserId());
+        $user = (new User())->getUserById(Session::getUserId());
         if ($user && !$user['is_activated']):
     ?>
     <div class="notification-banner">
