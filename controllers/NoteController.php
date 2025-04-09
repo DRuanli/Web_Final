@@ -180,8 +180,8 @@ class NoteController {
         // Get note
         $note = $this->note->getById($id);
         
-        // Check if note exists and belongs to the user
-        if (!$note || $note['user_id'] != $user_id) {
+        // Check if note exists and belongs to the user or is shared with edit permission
+        if (!$note || ($note['user_id'] != $user_id && !$this->sharedNote->canEditSharedNote($id, $user_id))) {
             Session::setFlash('error', 'Note not found or access denied');
             header('Location: ' . BASE_URL . '/notes');
             exit;
@@ -443,8 +443,6 @@ class NoteController {
         }
     }
     
-    // Password protection related methods
-    
     // Toggle password protection for a note
     public function togglePasswordProtection($id) {
         $user_id = Session::getUserId();
@@ -482,7 +480,7 @@ class NoteController {
                     
                     if ($result['success']) {
                         Session::setFlash('success', 'Password protection disabled successfully');
-                        header('Location: ' . BASE_URL . '/notes');
+                        header('Location: ' . BASE_URL . '/notes/edit/' . $id);
                         exit;
                     } else {
                         $data['errors']['general'] = 'Failed to disable password protection: ' . $result['message'];
@@ -505,6 +503,8 @@ class NoteController {
                 
                 if (empty($password)) {
                     $data['errors']['password'] = 'Password is required';
+                } elseif (strlen($password) < 4) {
+                    $data['errors']['password'] = 'Password must be at least 4 characters';
                 }
                 
                 if ($password !== $confirm_password) {
@@ -517,7 +517,7 @@ class NoteController {
                     
                     if ($result['success']) {
                         Session::setFlash('success', 'Password protection enabled successfully');
-                        header('Location: ' . BASE_URL . '/notes');
+                        header('Location: ' . BASE_URL . '/notes/edit/' . $id);
                         exit;
                     } else {
                         $data['errors']['general'] = 'Failed to enable password protection: ' . $result['message'];
@@ -531,7 +531,7 @@ class NoteController {
         include VIEWS_PATH . '/notes/password-protection.php';
         include VIEWS_PATH . '/components/footer.php';
     }
-    
+
     // Verify password for a protected note
     public function verifyPassword($id) {
         $user_id = Session::getUserId();
