@@ -82,6 +82,12 @@ switch ($page) {
         $controller = new AuthController();
         $controller->activate();
         break;
+
+    case 'verify-otp':
+        include_once 'controllers/AuthController.php';
+        $controller = new AuthController();
+        $controller->verifyOTP();
+        break;
         
     case 'reset-password':
         include_once 'controllers/AuthController.php';

@@ -137,3 +137,44 @@ function sendPasswordResetEmail($user_email, $user_name, $reset_token) {
         return sendEmail($user_email, $subject, $message);
     }
 }
+
+// Send OTP email for password reset
+function sendOTPEmail($user_email, $user_name, $otp) {
+    $subject = "Password Reset OTP - " . APP_NAME;
+    
+    $message = "
+    <html>
+    <head>
+        <title>Password Reset OTP</title>
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .otp-code { font-size: 24px; font-weight: bold; letter-spacing: 5px; margin: 20px 0; 
+                       padding: 10px; background-color: #f5f5f5; text-align: center; }
+            .footer { margin-top: 30px; font-size: 12px; color: #777; }
+            .warning { color: #ff6600; }
+        </style>
+    </head>
+    <body>
+        <div class='container'>
+            <h2>" . APP_NAME . " - Password Reset</h2>
+            <p>Hello " . htmlspecialchars($user_name) . ",</p>
+            <p>You requested a password reset. Please use the following verification code (OTP):</p>
+            <div class='otp-code'>" . $otp . "</div>
+            <p>This code will expire in 1 hour.</p>
+            <p class='warning'>If you didn't request this password reset, please ignore this email or contact support if you're concerned.</p>
+            <div class='footer'>
+                <p>Best regards,<br>The " . APP_NAME . " Team</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    ";
+    
+    // Use PHPMailer if available, otherwise use default function
+    if (hasPhpMailer()) {
+        return sendEmailWithPhpMailer($user_email, $subject, $message);
+    } else {
+        return sendEmail($user_email, $subject, $message);
+    }
+}

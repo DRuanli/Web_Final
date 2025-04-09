@@ -292,4 +292,55 @@ class AuthController {
         // Load view
         include VIEWS_PATH . '/auth/reset-password.php';
     }
+
+    // Process OTP verification for password reset
+    public function verifyOTP() {
+        // Check if already logged in
+        if (Session::isLoggedIn()) {
+            header('Location: ' . BASE_URL);
+            exit;
+        }
+        
+        $data = [
+            'title' => 'Verify OTP',
+            'email' => $_GET['email'] ?? '',
+            'errors' => [],
+            'step' => 'verify_otp'
+        ];
+        
+        // Process OTP form
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $email = trim($_POST['email'] ?? '');
+            $otp = trim($_POST['otp'] ?? '');
+            
+            if (empty($email)) {
+                $data['errors']['email'] = 'Email is required';
+            }
+            
+            if (empty($otp)) {
+                $data['errors']['otp'] = 'OTP is required';
+            }
+            
+            if (empty($data['errors'])) {
+                $result = $this->user->verifyOTP($email, $otp);
+                
+                if ($result) {
+                    // Redirect to new password page
+                    Session::set('reset_verified', true);
+                    Session::set('reset_email', $email);
+                    Session::set('reset_method', 'otp');
+                    
+                    header('Location: ' . BASE_URL . '/reset-password/new-password');
+                    exit;
+                } else {
+                    $data['errors']['general'] = 'Invalid or expired OTP';
+                }
+            }
+            
+            $data['email'] = $email;
+        }
+        
+        // Load view
+        include VIEWS_PATH . '/auth/verify-otp.php';
+    }
 }

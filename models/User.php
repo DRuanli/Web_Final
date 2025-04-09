@@ -184,4 +184,62 @@ class User {
         
         return ['success' => false, 'message' => 'Failed to reset password'];
     }
+    
+    // Generate OTP for password reset (adding OTP support)
+    public function generateOTP($email) {
+        $user = $this->getUserByEmail($email);
+        
+        if (!$user) {
+            return ['success' => false, 'message' => 'Email not found'];
+        }
+        
+        // Generate 6-digit OTP
+        $otp = sprintf("%06d", mt_rand(1, 999999));
+        $expiry = date('Y-m-d H:i:s', time() + 3600); // 1 hour validity
+        
+        // Store OTP in database (you need to add otp and otp_expiry columns to users table)
+        $stmt = $this->db->prepare("UPDATE users SET otp = ?, otp_expiry = ? WHERE id = ?");
+        $stmt->bind_param("ssi", $otp, $expiry, $user['id']);
+        
+        if ($stmt->execute()) {
+            return [
+                'success' => true,
+                'otp' => $otp,
+                'display_name' => $user['display_name']
+            ];
+        }
+        
+        return ['success' => false, 'message' => 'Failed to generate OTP'];
+    }
+    
+    // Verify OTP
+    public function verifyOTP($email, $otp) {
+        $current_time = date('Y-m-d H:i:s');
+        
+        $stmt = $this->db->prepare("SELECT id FROM users WHERE email = ? AND otp = ? AND otp_expiry > ?");
+        $stmt->bind_param("sss", $email, $otp, $current_time);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        return $result->num_rows === 1;
+    }
+    
+    // Reset password with OTP
+    public function resetPasswordWithOTP($email, $otp, $new_password) {
+        if (!$this->verifyOTP($email, $otp)) {
+            return ['success' => false, 'message' => 'Invalid or expired OTP'];
+        }
+        
+        // Hash the new password
+        $hashed_password = password_hash($new_password, PASSWORD_BCRYPT, ['cost' => PASSWORD_HASH_COST]);
+        
+        $stmt = $this->db->prepare("UPDATE users SET password = ?, otp = NULL, otp_expiry = NULL WHERE email = ?");
+        $stmt->bind_param("ss", $hashed_password, $email);
+        
+        if ($stmt->execute()) {
+            return ['success' => true];
+        }
+        
+        return ['success' => false, 'message' => 'Failed to reset password'];
+    }
 }

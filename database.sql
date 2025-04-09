@@ -83,3 +83,8 @@ CREATE TABLE shared_notes (
     FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+-- Add OTP columns to users table
+ALTER TABLE users 
+ADD COLUMN otp VARCHAR(10) NULL,
+ADD COLUMN otp_expiry DATETIME NULL;
