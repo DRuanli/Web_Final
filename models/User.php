@@ -6,136 +6,182 @@ class User {
         $this->db = getDB();
     }
     
-    /**
-     * Register a new user
-     * 
-     * @param string $email User's email address
-     * @param string $display_name User's display name
-     * @param string $password User's password (plain text)
-     * @return array Result with success status and user info or error
-     */
+    // Register a new user
     public function register($email, $display_name, $password) {
-        // Hash the password using bcrypt
+        // Check if email already exists
+        if ($this->emailExists($email)) {
+            return ['success' => false, 'message' => 'Email already registered'];
+        }
+        
+        // Hash password using bcrypt
         $hashed_password = password_hash($password, PASSWORD_BCRYPT, ['cost' => PASSWORD_HASH_COST]);
         
         // Generate activation token
         $activation_token = bin2hex(random_bytes(32));
         
-        // Begin transaction
-        $this->db->begin_transaction();
+        // Insert user into database
+        $stmt = $this->db->prepare("INSERT INTO users (email, display_name, password, activation_token) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param("ssss", $email, $display_name, $hashed_password, $activation_token);
         
-        try {
-            // Insert user data
-            $stmt = $this->db->prepare("INSERT INTO users (email, display_name, password, activation_token) VALUES (?, ?, ?, ?)");
-            $stmt->bind_param("ssss", $email, $display_name, $hashed_password, $activation_token);
-            
-            // Execute the query
-            if (!$stmt->execute()) {
-                throw new Exception("Failed to create user: " . $this->db->error);
-            }
-            
+        if ($stmt->execute()) {
             $user_id = $stmt->insert_id;
-            $stmt->close();
             
-            // Create default user preferences
+            // Create default preferences
             $this->createDefaultPreferences($user_id);
             
-            // Commit transaction
-            $this->db->commit();
-            
             return [
-                'success' => true,
+                'success' => true, 
                 'user_id' => $user_id,
-                'email' => $email,
-                'display_name' => $display_name,
                 'activation_token' => $activation_token
             ];
-        } catch (Exception $e) {
-            // Rollback transaction on error
-            $this->db->rollback();
-            
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
-            ];
+        } else {
+            return ['success' => false, 'message' => 'Registration failed: ' . $stmt->error];
         }
     }
     
-    /**
-     * Create default preferences for a new user
-     * 
-     * @param int $user_id User ID
-     * @return bool Success status
-     */
-    private function createDefaultPreferences($user_id) {
-        $stmt = $this->db->prepare("INSERT INTO user_preferences (user_id) VALUES (?)");
-        $stmt->bind_param("i", $user_id);
-        $result = $stmt->execute();
-        $stmt->close();
-        return $result;
-    }
-    
-    /**
-     * Check if email already exists
-     * 
-     * @param string $email Email to check
-     * @return bool True if email exists, false otherwise
-     */
+    // Check if email exists
     public function emailExists($email) {
         $stmt = $this->db->prepare("SELECT id FROM users WHERE email = ?");
         $stmt->bind_param("s", $email);
         $stmt->execute();
         $result = $stmt->get_result();
-        $exists = $result->num_rows > 0;
-        $stmt->close();
-        return $exists;
+        return $result->num_rows > 0;
     }
     
-    /**
-     * Get user by email
-     * 
-     * @param string $email User's email
-     * @return array|null User data or null if not found
-     */
-    public function getByEmail($email) {
-        $stmt = $this->db->prepare("SELECT * FROM users WHERE email = ?");
+    // Create default user preferences
+    private function createDefaultPreferences($user_id) {
+        $stmt = $this->db->prepare("INSERT INTO user_preferences (user_id) VALUES (?)");
+        $stmt->bind_param("i", $user_id);
+        return $stmt->execute();
+    }
+    
+    // Validate login credentials
+    public function login($email, $password) {
+        $stmt = $this->db->prepare("SELECT id, display_name, password, is_activated FROM users WHERE email = ?");
         $stmt->bind_param("s", $email);
         $stmt->execute();
         $result = $stmt->get_result();
-        $user = $result->fetch_assoc();
-        $stmt->close();
-        return $user;
+        
+        if ($result->num_rows === 1) {
+            $user = $result->fetch_assoc();
+            
+            // Verify password
+            if (password_verify($password, $user['password'])) {
+                return [
+                    'success' => true,
+                    'user_id' => $user['id'],
+                    'display_name' => $user['display_name'],
+                    'is_activated' => $user['is_activated']
+                ];
+            }
+        }
+        
+        return ['success' => false, 'message' => 'Invalid email or password'];
     }
     
-    /**
-     * Get user by ID
-     * 
-     * @param int $id User ID
-     * @return array|null User data or null if not found
-     */
-    public function getById($id) {
-        $stmt = $this->db->prepare("SELECT * FROM users WHERE id = ?");
+    // Activate user account
+    public function activateAccount($email, $token) {
+        $stmt = $this->db->prepare("SELECT id FROM users WHERE email = ? AND activation_token = ? AND is_activated = 0");
+        $stmt->bind_param("ss", $email, $token);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows === 1) {
+            $user = $result->fetch_assoc();
+            
+            $update = $this->db->prepare("UPDATE users SET is_activated = 1, activation_token = NULL WHERE id = ?");
+            $update->bind_param("i", $user['id']);
+            
+            if ($update->execute()) {
+                return ['success' => true, 'user_id' => $user['id']];
+            }
+        }
+        
+        return ['success' => false, 'message' => 'Invalid activation token or account already activated'];
+    }
+    
+    // Get user by ID
+    public function getUserById($id) {
+        $stmt = $this->db->prepare("SELECT id, email, display_name, is_activated, created_at FROM users WHERE id = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
         $result = $stmt->get_result();
-        $user = $result->fetch_assoc();
-        $stmt->close();
-        return $user;
+        
+        if ($result->num_rows === 1) {
+            return $result->fetch_assoc();
+        }
+        
+        return null;
     }
     
-    /**
-     * Activate user account
-     * 
-     * @param string $email User's email
-     * @param string $token Activation token
-     * @return bool Success status
-     */
-    public function activateAccount($email, $token) {
-        $stmt = $this->db->prepare("UPDATE users SET is_activated = 1, activation_token = NULL WHERE email = ? AND activation_token = ?");
-        $stmt->bind_param("ss", $email, $token);
+    // Get user by email
+    public function getUserByEmail($email) {
+        $stmt = $this->db->prepare("SELECT id, email, display_name, is_activated, created_at FROM users WHERE email = ?");
+        $stmt->bind_param("s", $email);
         $stmt->execute();
-        $affected = $stmt->affected_rows;
-        $stmt->close();
-        return $affected > 0;
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows === 1) {
+            return $result->fetch_assoc();
+        }
+        
+        return null;
+    }
+    
+    // Generate password reset token
+    public function createPasswordResetToken($email) {
+        $user = $this->getUserByEmail($email);
+        
+        if (!$user) {
+            return ['success' => false, 'message' => 'Email not found'];
+        }
+        
+        // Generate reset token
+        $reset_token = bin2hex(random_bytes(32));
+        $expiry = date('Y-m-d H:i:s', time() + RESET_TOKEN_EXPIRY);
+        
+        $stmt = $this->db->prepare("UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE id = ?");
+        $stmt->bind_param("ssi", $reset_token, $expiry, $user['id']);
+        
+        if ($stmt->execute()) {
+            return [
+                'success' => true,
+                'reset_token' => $reset_token,
+                'display_name' => $user['display_name']
+            ];
+        }
+        
+        return ['success' => false, 'message' => 'Failed to create reset token'];
+    }
+    
+    // Verify password reset token
+    public function verifyResetToken($email, $token) {
+        $current_time = date('Y-m-d H:i:s');
+        
+        $stmt = $this->db->prepare("SELECT id FROM users WHERE email = ? AND reset_token = ? AND reset_token_expiry > ?");
+        $stmt->bind_param("sss", $email, $token, $current_time);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        return $result->num_rows === 1;
+    }
+    
+    // Reset password
+    public function resetPassword($email, $token, $new_password) {
+        if (!$this->verifyResetToken($email, $token)) {
+            return ['success' => false, 'message' => 'Invalid or expired token'];
+        }
+        
+        // Hash the new password
+        $hashed_password = password_hash($new_password, PASSWORD_BCRYPT, ['cost' => PASSWORD_HASH_COST]);
+        
+        $stmt = $this->db->prepare("UPDATE users SET password = ?, reset_token = NULL, reset_token_expiry = NULL WHERE email = ?");
+        $stmt->bind_param("ss", $hashed_password, $email);
+        
+        if ($stmt->execute()) {
+            return ['success' => true];
+        }
+        
+        return ['success' => false, 'message' => 'Failed to reset password'];
     }
 }

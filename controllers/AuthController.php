@@ -1,132 +1,289 @@
 <?php
+require_once MODELS_PATH . '/User.php';
+require_once 'utils/Mailer.php';
+
 class AuthController {
-    private $userModel;
+    private $user;
     
     public function __construct() {
-        require_once MODELS_PATH . '/User.php';
-        $this->userModel = new User();
+        $this->user = new User();
     }
     
-    /**
-     * Display and process registration
-     */
-    public function register() {
-        // If user is already logged in, redirect to home
+    // Display and process login form
+    public function login() {
+        // Check if already logged in
         if (Session::isLoggedIn()) {
             header('Location: ' . BASE_URL);
             exit;
         }
         
-        // Process form submission
+        $data = [
+            'title' => 'Login',
+            'email' => '',
+            'errors' => []
+        ];
+        
+        // Check if form is submitted
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $this->processRegistration();
-        } else {
-            // Display registration form
-            include VIEWS_PATH . '/auth/register.php';
+            // Get form data
+            $email = trim($_POST['email'] ?? '');
+            $password = $_POST['password'] ?? '';
+            $remember = isset($_POST['remember']);
+            
+            // Validate input
+            if (empty($email)) {
+                $data['errors']['email'] = 'Email is required';
+            }
+            
+            if (empty($password)) {
+                $data['errors']['password'] = 'Password is required';
+            }
+            
+            // If no errors, try to login
+            if (empty($data['errors'])) {
+                $result = $this->user->login($email, $password);
+                
+                if ($result['success']) {
+                    // Set auth session
+                    Session::setAuth($result['user_id'], $email, $result['display_name']);
+                    
+                    // Extend session if "remember me" is checked
+                    if ($remember) {
+                        ini_set('session.cookie_lifetime', 30 * 24 * 60 * 60); // 30 days
+                    }
+                    
+                    // Redirect to intended page or home
+                    $redirect_url = Session::get('redirect_url', BASE_URL);
+                    Session::remove('redirect_url');
+                    
+                    header('Location: ' . $redirect_url);
+                    exit;
+                } else {
+                    $data['errors']['general'] = $result['message'];
+                }
+            }
+            
+            // Keep email value for form
+            $data['email'] = $email;
         }
+        
+        // Load view
+        include VIEWS_PATH . '/auth/login.php';
     }
     
-    /**
-     * Process registration form submission
-     */
-    private function processRegistration() {
-        // Validate input
-        $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
-        $display_name = trim($_POST['display_name'] ?? '');
-        $password = $_POST['password'] ?? '';
-        $confirm_password = $_POST['confirm_password'] ?? '';
-        
-        $errors = [];
-        
-        // Validate email
-        if (!$email) {
-            $errors['email'] = 'Please enter a valid email address';
-        } elseif ($this->userModel->emailExists($email)) {
-            $errors['email'] = 'This email is already registered';
-        }
-        
-        // Validate display name
-        if (empty($display_name)) {
-            $errors['display_name'] = 'Please enter your display name';
-        } elseif (strlen($display_name) < 3 || strlen($display_name) > 100) {
-            $errors['display_name'] = 'Display name must be between 3 and 100 characters';
-        }
-        
-        // Validate password
-        if (empty($password)) {
-            $errors['password'] = 'Please enter a password';
-        } elseif (strlen($password) < 8) {
-            $errors['password'] = 'Password must be at least 8 characters long';
-        }
-        
-        // Confirm passwords match
-        if ($password !== $confirm_password) {
-            $errors['confirm_password'] = 'Passwords do not match';
-        }
-        
-        // If there are errors, redisplay the form with error messages
-        if (!empty($errors)) {
-            Session::setFlash('errors', $errors);
-            Session::setFlash('old_input', [
-                'email' => $email,
-                'display_name' => $display_name
-            ]);
-            header('Location: ' . BASE_URL . '/register');
+    // Display and process registration form
+    public function register() {
+        // Check if already logged in
+        if (Session::isLoggedIn()) {
+            header('Location: ' . BASE_URL);
             exit;
         }
         
-        // Register the user
-        $result = $this->userModel->register($email, $display_name, $password);
+        $data = [
+            'title' => 'Register',
+            'email' => '',
+            'display_name' => '',
+            'errors' => []
+        ];
         
-        if ($result['success']) {
-            // Send activation email
-            require_once 'config/email.php';
-            sendActivationEmail($email, $display_name, $result['activation_token']);
+        // Check if form is submitted
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Get form data
+            $email = trim($_POST['email'] ?? '');
+            $display_name = trim($_POST['display_name'] ?? '');
+            $password = $_POST['password'] ?? '';
+            $confirm_password = $_POST['confirm_password'] ?? '';
             
-            // Log the user in automatically
-            Session::setAuth($result['user_id'], $email, $display_name);
+            // Validate input
+            if (empty($email)) {
+                $data['errors']['email'] = 'Email is required';
+            } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $data['errors']['email'] = 'Invalid email format';
+            }
             
-            // Set success message
-            Session::setFlash('success', 'Registration successful! Please check your email to activate your account.');
+            if (empty($display_name)) {
+                $data['errors']['display_name'] = 'Display name is required';
+            }
             
-            // Redirect to home or saved redirect URL
-            $redirect = Session::get('redirect_url', BASE_URL);
-            Session::remove('redirect_url');
+            if (empty($password)) {
+                $data['errors']['password'] = 'Password is required';
+            } elseif (strlen($password) < 8) {
+                $data['errors']['password'] = 'Password must be at least 8 characters';
+            }
             
-            header('Location: ' . $redirect);
-            exit;
-        } else {
-            // Registration failed
-            Session::setFlash('error', $result['error']);
-            Session::setFlash('old_input', [
-                'email' => $email,
-                'display_name' => $display_name
-            ]);
-            header('Location: ' . BASE_URL . '/register');
-            exit;
+            if ($password !== $confirm_password) {
+                $data['errors']['confirm_password'] = 'Passwords do not match';
+            }
+            
+            // If no errors, try to register
+            if (empty($data['errors'])) {
+                $result = $this->user->register($email, $display_name, $password);
+                
+                if ($result['success']) {
+                    // Send activation email
+                    $send_result = sendActivationEmail($email, $display_name, $result['activation_token']);
+                    
+                    // Set auth session (auto-login)
+                    Session::setAuth($result['user_id'], $email, $display_name);
+                    
+                    // Set flash message
+                    Session::setFlash('success', 'Registration successful! Please check your email to activate your account.');
+                    
+                    // Redirect to home
+                    header('Location: ' . BASE_URL);
+                    exit;
+                } else {
+                    $data['errors']['general'] = $result['message'];
+                }
+            }
+            
+            // Keep form values
+            $data['email'] = $email;
+            $data['display_name'] = $display_name;
         }
+        
+        // Load view
+        include VIEWS_PATH . '/auth/register.php';
     }
     
-    /**
-     * Account activation handler
-     */
+    // Process account activation
     public function activate() {
-        $email = filter_input(INPUT_GET, 'email', FILTER_VALIDATE_EMAIL);
+        $email = $_GET['email'] ?? '';
         $token = $_GET['token'] ?? '';
         
-        if (!$email || !$token) {
-            Session::setFlash('error', 'Invalid activation link');
-            header('Location: ' . BASE_URL . '/login');
+        $data = [
+            'title' => 'Account Activation',
+            'success' => false,
+            'message' => ''
+        ];
+        
+        if (!empty($email) && !empty($token)) {
+            $result = $this->user->activateAccount($email, $token);
+            
+            if ($result['success']) {
+                $data['success'] = true;
+                $data['message'] = 'Your account has been activated successfully! You can now use all features.';
+                
+                // Update session to reflect activation
+                if (Session::isLoggedIn() && Session::get('user_email') === $email) {
+                    Session::set('is_activated', 1);
+                }
+            } else {
+                $data['message'] = $result['message'];
+            }
+        } else {
+            $data['message'] = 'Invalid activation link. Please check your email or contact support.';
+        }
+        
+        // Load view
+        include VIEWS_PATH . '/auth/activate.php';
+    }
+    
+    // Log out user
+    public function logout() {
+        // Clear auth session
+        Session::clearAuth();
+        
+        // Set flash message
+        Session::setFlash('success', 'You have been logged out successfully.');
+        
+        // Redirect to login page
+        header('Location: ' . BASE_URL . '/login');
+        exit;
+    }
+    
+    // Display and process password reset request form
+    public function resetPassword() {
+        // Check if already logged in
+        if (Session::isLoggedIn()) {
+            header('Location: ' . BASE_URL);
             exit;
         }
         
-        if ($this->userModel->activateAccount($email, $token)) {
-            Session::setFlash('success', 'Your account has been activated successfully! You can now log in.');
-        } else {
-            Session::setFlash('error', 'Invalid or expired activation link. Please contact support.');
+        $data = [
+            'title' => 'Reset Password',
+            'email' => '',
+            'errors' => [],
+            'token' => $_GET['token'] ?? '',
+            'step' => isset($_GET['token']) ? 'new_password' : 'request'
+        ];
+        
+        // Process request form
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && $data['step'] === 'request') {
+            $email = trim($_POST['email'] ?? '');
+            
+            if (empty($email)) {
+                $data['errors']['email'] = 'Email is required';
+            } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $data['errors']['email'] = 'Invalid email format';
+            }
+            
+            if (empty($data['errors'])) {
+                $result = $this->user->createPasswordResetToken($email);
+                
+                if ($result['success']) {
+                    // Send reset email
+                    sendPasswordResetEmail($email, $result['display_name'], $result['reset_token']);
+                    
+                    // Set flash message
+                    Session::setFlash('success', 'Password reset link has been sent to your email!');
+                    
+                    // Redirect to prevent re-submission
+                    header('Location: ' . BASE_URL . '/login');
+                    exit;
+                } else {
+                    $data['errors']['general'] = $result['message'];
+                }
+            }
+            
+            $data['email'] = $email;
         }
         
-        header('Location: ' . BASE_URL . '/login');
-        exit;
+        // Process new password form
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && $data['step'] === 'new_password') {
+            $email = trim($_GET['email'] ?? '');
+            $token = $_GET['token'] ?? '';
+            $password = $_POST['password'] ?? '';
+            $confirm_password = $_POST['confirm_password'] ?? '';
+            
+            if (empty($password)) {
+                $data['errors']['password'] = 'Password is required';
+            } elseif (strlen($password) < 8) {
+                $data['errors']['password'] = 'Password must be at least 8 characters';
+            }
+            
+            if ($password !== $confirm_password) {
+                $data['errors']['confirm_password'] = 'Passwords do not match';
+            }
+            
+            if (empty($data['errors'])) {
+                $result = $this->user->resetPassword($email, $token, $password);
+                
+                if ($result['success']) {
+                    // Set flash message
+                    Session::setFlash('success', 'Your password has been reset successfully. You can now login with your new password.');
+                    
+                    // Redirect to login
+                    header('Location: ' . BASE_URL . '/login');
+                    exit;
+                } else {
+                    $data['errors']['general'] = $result['message'];
+                }
+            }
+        }
+        
+        // Verify token if on new password step
+        if ($data['step'] === 'new_password') {
+            $email = $_GET['email'] ?? '';
+            $token = $_GET['token'] ?? '';
+            
+            if (empty($email) || empty($token) || !$this->user->verifyResetToken($email, $token)) {
+                $data['errors']['general'] = 'Invalid or expired reset token. Please request a new password reset.';
+                $data['step'] = 'request';
+            }
+        }
+        
+        // Load view
+        include VIEWS_PATH . '/auth/reset-password.php';
     }
 }
