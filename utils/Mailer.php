@@ -1,11 +1,12 @@
 <?php
-// Include PHPMailer if available (otherwise we'll use the config/email functions)
+// Check and load Composer's autoloader if available
 if (file_exists(ROOT_PATH . '/vendor/autoload.php')) {
     require_once ROOT_PATH . '/vendor/autoload.php';
-    
-    use PHPMailer\PHPMailer\PHPMailer;
-    use PHPMailer\PHPMailer\Exception;
 }
+
+// Always declare the namespace aliases at the file level
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
 // Check if PHPMailer is available, otherwise use default email functions
 function hasPhpMailer() {
@@ -19,12 +20,12 @@ function sendEmailWithPhpMailer($to, $subject, $message) {
         
         // Server settings
         $mail->isSMTP();
-        $mail->Host = MAIL_HOST;
-        $mail->SMTPAuth = true;
-        $mail->Username = MAIL_USERNAME;
-        $mail->Password = MAIL_PASSWORD;
+        $mail->Host       = MAIL_HOST;
+        $mail->SMTPAuth   = true;
+        $mail->Username   = MAIL_USERNAME;
+        $mail->Password   = MAIL_PASSWORD;
         $mail->SMTPSecure = MAIL_ENCRYPTION;
-        $mail->Port = MAIL_PORT;
+        $mail->Port       = MAIL_PORT;
         
         // Recipients
         $mail->setFrom(MAIL_FROM_ADDRESS, MAIL_FROM_NAME);
@@ -33,7 +34,7 @@ function sendEmailWithPhpMailer($to, $subject, $message) {
         // Content
         $mail->isHTML(true);
         $mail->Subject = $subject;
-        $mail->Body = $message;
+        $mail->Body    = $message;
         $mail->AltBody = strip_tags($message);
         
         return $mail->send();
