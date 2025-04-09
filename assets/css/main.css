@@ -226,3 +226,37 @@ p {
         margin-left: 0;
     }
 }
+
+/* Add to assets/css/main.css */
+:root {
+    --bg-color: #f8f9fa;
+    --text-color: #333;
+    --card-bg: #fff;
+    --border-color: #ddd;
+    --header-bg: #4a89dc;
+    --header-color: #fff;
+}
+
+html[data-theme="dark"] {
+    --bg-color: #1a1a1a;
+    --text-color: #f5f5f5;
+    --card-bg: #2d2d2d;
+    --border-color: #444;
+    --header-bg: #1a1a1a;
+    --header-color: #f5f5f5;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
+.card, .note-card, .profile-card {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+.main-header {
+    background-color: var(--header-bg);
+    color: var(--header-color);
+}

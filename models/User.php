@@ -304,4 +304,93 @@ class User {
             'message' => 'User not found'
         ];
     }
+
+    /**
+     * Update user avatar
+     */
+    public function updateAvatar($user_id, $avatar_path) {
+        $stmt = $this->db->prepare("UPDATE users SET avatar_path = ? WHERE id = ?");
+        $stmt->bind_param("si", $avatar_path, $user_id);
+        
+        if ($stmt->execute()) {
+            return [
+                'success' => true
+            ];
+        }
+        
+        return [
+            'success' => false,
+            'message' => 'Failed to update avatar: ' . $stmt->error
+        ];
+    }
+
+    /**
+     * Remove user avatar
+     */
+    public function removeAvatar($user_id) {
+        $stmt = $this->db->prepare("UPDATE users SET avatar_path = NULL WHERE id = ?");
+        $stmt->bind_param("i", $user_id);
+        
+        if ($stmt->execute()) {
+            return [
+                'success' => true
+            ];
+        }
+        
+        return [
+            'success' => false,
+            'message' => 'Failed to remove avatar: ' . $stmt->error
+        ];
+    }
+    /**
+     * Get user preferences
+     */
+    public function getUserPreferences($user_id) {
+        $stmt = $this->db->prepare("SELECT * FROM user_preferences WHERE user_id = ?");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows === 1) {
+            return $result->fetch_assoc();
+        }
+        
+        return [
+            'font_size' => 'medium',
+            'theme' => 'light',
+            'note_color' => 'white'
+        ];
+    }
+
+    /**
+     * Update user preferences
+     */
+    public function updatePreferences($user_id, $preferences) {
+        // Check if preferences already exist
+        $stmt = $this->db->prepare("SELECT id FROM user_preferences WHERE user_id = ?");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows === 1) {
+            // Update existing preferences
+            $stmt = $this->db->prepare("UPDATE user_preferences SET font_size = ?, theme = ?, note_color = ? WHERE user_id = ?");
+            $stmt->bind_param("sssi", $preferences['font_size'], $preferences['theme'], $preferences['note_color'], $user_id);
+        } else {
+            // Insert new preferences
+            $stmt = $this->db->prepare("INSERT INTO user_preferences (user_id, font_size, theme, note_color) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param("isss", $user_id, $preferences['font_size'], $preferences['theme'], $preferences['note_color']);
+        }
+        
+        if ($stmt->execute()) {
+            return [
+                'success' => true
+            ];
+        }
+        
+        return [
+            'success' => false,
+            'message' => 'Failed to update preferences: ' . $stmt->error
+        ];
+    }
 }

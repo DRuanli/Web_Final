@@ -34,6 +34,36 @@
                 </button>
                 <a href="<?= BASE_URL ?>/profile" class="btn btn-outline">Cancel</a>
             </div>
+
+            <div class="form-group">
+                <label>Profile Picture</label>
+                <div class="avatar-container">
+                    <?php if (isset($data['user']['avatar_path']) && !empty($data['user']['avatar_path'])): ?>
+                        <img src="<?= BASE_URL ?>/uploads/avatars/<?= $data['user']['avatar_path'] ?>" alt="Avatar" class="profile-avatar">
+                    <?php else: ?>
+                        <div class="avatar-placeholder">
+                            <i class="fas fa-user"></i>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                
+                <div class="avatar-upload">
+                    <form method="POST" action="<?= BASE_URL ?>/profile/upload-avatar" enctype="multipart/form-data">
+                        <input type="file" name="avatar" id="avatar-input" accept="image/jpeg,image/png">
+                        <label for="avatar-input" class="btn btn-outline">Choose New Image</label>
+                        <button type="submit" class="btn btn-primary">Upload</button>
+                    </form>
+                </div>
+                
+                <?php if (isset($data['user']['avatar_path']) && !empty($data['user']['avatar_path'])): ?>
+                    <div class="avatar-remove">
+                        <form method="POST" action="<?= BASE_URL ?>/profile/upload-avatar">
+                            <input type="hidden" name="remove_avatar" value="1">
+                            <button type="submit" class="btn btn-danger">Remove Avatar</button>
+                        </form>
+                    </div>
+                <?php endif; ?>
+            </div>
         </form>
     </div>
 </div>

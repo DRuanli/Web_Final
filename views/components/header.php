@@ -1,5 +1,14 @@
 <?php
 require_once MODELS_PATH . '/User.php';
+
+$theme = 'light'; // Default
+if (Session::isLoggedIn()) {
+    $user_id = Session::getUserId();
+    $userModel = new User();
+    $preferences = $userModel->getUserPreferences($user_id);
+    $theme = $preferences['theme'] ?? 'light';
+}
+
 ?>
 
 <!DOCTYPE html>

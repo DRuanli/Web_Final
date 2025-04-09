@@ -150,4 +150,114 @@ class ProfileController {
         include VIEWS_PATH . '/profile/preferences.php';
         include VIEWS_PATH . '/components/footer.php';
     }
+
+    public function savePreferences() {
+        $user_id = Session::getUserId();
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $theme = isset($_POST['theme']) ? $_POST['theme'] : 'light';
+            $font_size = isset($_POST['font_size']) ? $_POST['font_size'] : 'medium';
+            $note_color = isset($_POST['note_color']) ? $_POST['note_color'] : 'white';
+            
+            $preferences = [
+                'font_size' => $font_size,
+                'theme' => $theme,
+                'note_color' => $note_color
+            ];
+            
+            $result = $this->user->updatePreferences($user_id, $preferences);
+            
+            if ($result['success']) {
+                Session::setFlash('success', 'Preferences updated successfully');
+            } else {
+                Session::setFlash('error', $result['message']);
+            }
+            
+            header('Location: ' . BASE_URL . '/profile/preferences');
+            exit;
+        }
+    }
+    
+    public function uploadAvatar() {
+        $user_id = Session::getUserId();
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Create uploads directory if it doesn't exist
+            $avatars_dir = ROOT_PATH . '/uploads/avatars';
+            if (!file_exists($avatars_dir)) {
+                mkdir($avatars_dir, 0755, true);
+            }
+            
+            // Handle avatar upload
+            if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
+                $allowed_types = ['image/jpeg', 'image/jpg', 'image/png'];
+                $max_size = 2 * 1024 * 1024; // 2MB
+                
+                $file = $_FILES['avatar'];
+                
+                // Validate file type
+                if (!in_array($file['type'], $allowed_types)) {
+                    Session::setFlash('error', 'Invalid file type. Only JPEG and PNG are allowed.');
+                    header('Location: ' . BASE_URL . '/profile/edit');
+                    exit;
+                }
+                
+                // Validate file size
+                if ($file['size'] > $max_size) {
+                    Session::setFlash('error', 'File is too large. Maximum size is 2MB.');
+                    header('Location: ' . BASE_URL . '/profile/edit');
+                    exit;
+                }
+                
+                // Generate unique filename
+                $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+                $new_filename = 'avatar_' . $user_id . '_' . uniqid() . '.' . $extension;
+                $destination = $avatars_dir . '/' . $new_filename;
+                
+                // Move uploaded file
+                if (move_uploaded_file($file['tmp_name'], $destination)) {
+                    // Get current avatar to delete
+                    $user = $this->user->getUserById($user_id);
+                    if ($user && !empty($user['avatar_path'])) {
+                        $old_avatar = $avatars_dir . '/' . $user['avatar_path'];
+                        if (file_exists($old_avatar)) {
+                            unlink($old_avatar);
+                        }
+                    }
+                    
+                    // Update database
+                    $result = $this->user->updateAvatar($user_id, $new_filename);
+                    
+                    if ($result['success']) {
+                        Session::setFlash('success', 'Avatar updated successfully');
+                    } else {
+                        Session::setFlash('error', $result['message']);
+                    }
+                } else {
+                    Session::setFlash('error', 'Failed to upload avatar');
+                }
+            } else if (isset($_POST['remove_avatar']) && $_POST['remove_avatar'] === '1') {
+                // Remove avatar
+                $user = $this->user->getUserById($user_id);
+                if ($user && !empty($user['avatar_path'])) {
+                    $avatar_path = $avatars_dir . '/' . $user['avatar_path'];
+                    if (file_exists($avatar_path)) {
+                        unlink($avatar_path);
+                    }
+                }
+                
+                // Update database
+                $result = $this->user->removeAvatar($user_id);
+                
+                if ($result['success']) {
+                    Session::setFlash('success', 'Avatar removed successfully');
+                } else {
+                    Session::setFlash('error', $result['message']);
+                }
+            }
+            
+            header('Location: ' . BASE_URL . '/profile/edit');
+            exit;
+        }
+    }
 }

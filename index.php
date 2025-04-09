@@ -88,7 +88,14 @@ switch ($page) {
         $controller = new AuthController();
         $controller->verifyOTP();
         break;
-        
+    
+    case 'upload-avatar':
+        $controller->uploadAvatar();
+        break;
+    case 'save-preferences':
+        $controller->savePreferences();
+        break;  
+
     case 'reset-password':
         include_once 'controllers/AuthController.php';
         $controller = new AuthController();
