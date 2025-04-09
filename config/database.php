@@ -22,6 +22,7 @@ function connectDB() {
     return $conn;
 }
 
+
 // Get database connection
 function getDB() {
     static $conn = null;
