@@ -28,9 +28,8 @@ class Note {
             $types .= "ss";
         }
         
-        // Order by pinned status first, then by last modified date
-        // Removed pin_time from ORDER BY clause
-        $query .= " ORDER BY n.is_pinned DESC, n.updated_at DESC";
+        // Order by pinned status first, then by pin time (most recent pins first), then by last modified date
+        $query .= " ORDER BY n.is_pinned DESC, n.pin_time DESC, n.updated_at DESC";
         
         $stmt = $this->db->prepare($query);
         $stmt->bind_param($types, ...$params);
