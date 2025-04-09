@@ -1,13 +1,26 @@
 </div><!-- /.container -->
+    </main>
     
-    <footer class="main-footer">
-        <div class="footer-content">
-            <p>&copy; <?= date('Y') ?> <?= APP_NAME ?>. All rights reserved.</p>
+    <footer class="py-4 bg-dark text-white mt-auto">
+        <div class="container">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <p class="mb-0">&copy; <?= date('Y') ?> <?= APP_NAME ?>. All rights reserved.</p>
+                <div>
+                    <a href="#" class="text-white me-3"><i class="fab fa-github"></i></a>
+                    <a href="#" class="text-white me-3"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="text-white"><i class="fab fa-linkedin"></i></a>
+                </div>
+            </div>
         </div>
     </footer>
     
-    <!-- JavaScript -->
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Core JavaScript -->
     <script src="<?= ASSETS_URL ?>/js/main.js"></script>
+    
+    <!-- Page-specific JavaScript -->
     <?php if (isset($pageScripts) && is_array($pageScripts)): ?>
         <?php foreach ($pageScripts as $script): ?>
             <script src="<?= ASSETS_URL ?>/js/<?= $script ?>.js"></script>
