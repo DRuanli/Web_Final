@@ -16,10 +16,23 @@ Session::start();
 
 // Check if user is logged in, if not redirect to login page
 // Except for login, register, activation, password reset pages
+// Except for login, register, activation, password reset pages
 $allowed_pages = [
     'login', 'register', 'activate', 'reset-password',
     'password-reset', 'verify-reset', 'new-password'
 ];
+
+// Also check if the current path has .php extension (for direct access)
+$current_path = $_SERVER['REQUEST_URI'];
+if (strpos($current_path, '.php') !== false) {
+    // Allow direct access to these PHP files
+    $php_files = ['login.php', 'register.php', 'activate.php', 'reset-password.php'];
+    foreach ($php_files as $file) {
+        if (strpos($current_path, $file) !== false) {
+            $allowed_pages[] = basename($file, '.php');
+        }
+    }
+}
 
 // Get current page from URL
 $url = isset($_GET['url']) ? $_GET['url'] : '';
@@ -31,7 +44,8 @@ if (!Session::isLoggedIn() && !in_array($page, $allowed_pages)) {
     Session::set('redirect_url', $_SERVER['REQUEST_URI']);
     
     // Redirect to login page
-    header('Location: ' . BASE_URL . '/login.php');
+
+    header('Location: ' . BASE_URL . '/login');
     exit;
 }
 

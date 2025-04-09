@@ -13,8 +13,14 @@ class AuthController {
     public function login() {
         // Check if already logged in
         if (Session::isLoggedIn()) {
-            header('Location: ' . BASE_URL);
-            exit;
+            // Don't redirect if already on BASE_URL to prevent redirect loops
+            $current_url = $_SERVER['REQUEST_URI'];
+            $base_path = parse_url(BASE_URL, PHP_URL_PATH);
+            
+            if ($current_url !== $base_path) {
+                header('Location: ' . BASE_URL);
+                exit;
+            }
         }
         
         $data = [
