@@ -44,6 +44,9 @@ class Note {
             // Get image count for each note
             $row['image_count'] = $this->getNoteImageCount($row['id']);
             
+            // Add shared status to note data
+            $row['is_shared'] = $this->isSharedWithOthers($row['id']);
+            
             $notes[] = $row;
         }
         
@@ -58,7 +61,10 @@ class Note {
         $result = $stmt->get_result();
         
         if ($result->num_rows === 1) {
-            return $result->fetch_assoc();
+            $note = $result->fetch_assoc();
+            // Add shared status
+            $note['is_shared'] = $this->isSharedWithOthers($id);
+            return $note;
         }
         
         return null;
@@ -121,7 +127,6 @@ class Note {
     }
     
     // Toggle pin status
-    // Toggle pin status
     public function togglePin($id) {
         // First get current pin status
         $stmt = $this->db->prepare("SELECT is_pinned FROM notes WHERE id = ?");
@@ -132,10 +137,18 @@ class Note {
         
         $current_status = $row['is_pinned'];
         $new_status = $current_status ? 0 : 1;
+        $pin_time = null;
         
-        // Update pin status without using pin_time
-        $stmt = $this->db->prepare("UPDATE notes SET is_pinned = ? WHERE id = ?");
-        $stmt->bind_param("ii", $new_status, $id);
+        if ($new_status) {
+            // If pinning, set current time as pin_time
+            $pin_time = date('Y-m-d H:i:s');
+            $stmt = $this->db->prepare("UPDATE notes SET is_pinned = ?, pin_time = ? WHERE id = ?");
+            $stmt->bind_param("isi", $new_status, $pin_time, $id);
+        } else {
+            // If unpinning, set pin_time to NULL
+            $stmt = $this->db->prepare("UPDATE notes SET is_pinned = ?, pin_time = NULL WHERE id = ?");
+            $stmt->bind_param("ii", $new_status, $id);
+        }
         
         if ($stmt->execute()) {
             return [
@@ -149,6 +162,17 @@ class Note {
             'success' => false,
             'message' => $stmt->error
         ];
+    }
+    
+    // Check if a note is shared with others
+    public function isSharedWithOthers($note_id) {
+        $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM shared_notes WHERE note_id = ?");
+        $stmt->bind_param("i", $note_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        
+        return $row['count'] > 0;
     }
     
     // Label related methods

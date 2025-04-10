@@ -893,3 +893,86 @@
         display: none;
     }
 }
+
+/* Note status indicators styles */
+.note-indicators .indicator {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 0.5rem;
+    color: #6c757d;
+}
+
+.note-indicators .indicator.pinned {
+    color: #f59f00; /* Amber color for pinned icon */
+}
+
+.note-indicators .indicator.locked {
+    color: #e74c3c; /* Red color for locked/password icon */
+}
+
+.note-indicators .indicator.shared {
+    color: #3498db; /* Blue color for shared icon */
+}
+
+/* Ensure all indicators are visible and properly spaced */
+.note-indicators {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+/* Make the icons stand out better */
+.note-card .indicator i,
+.table .indicator i {
+    font-size: 1rem;
+}
+
+/* For grid view: Make status icons more visible */
+.note-card .note-indicators {
+    position: relative;
+    z-index: 5;
+    margin-bottom: 0.5rem;
+}
+
+/* For list view: Ensure consistent spacing */
+.table .note-indicators {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Increase visibility of status icons in both views */
+.table td.text-center i,
+.card-footer i {
+    font-size: 1.1rem;
+    margin-right: 0.25rem;
+}
+
+/* Add tooltips for status icons */
+[title] {
+    position: relative;
+    cursor: help;
+}
+
+/* Hover effect for note cards */
+.note-card:hover .note-indicators .indicator i,
+.table tr:hover .note-indicators .indicator i {
+    transform: scale(1.1);
+    transition: transform 0.2s ease;
+}
+
+/* Ensure visibility in dark mode */
+[data-bs-theme="dark"] .note-indicators .indicator {
+    color: #ddd;
+}
+
+[data-bs-theme="dark"] .note-indicators .indicator.pinned {
+    color: #ffc107;
+}
+
+[data-bs-theme="dark"] .note-indicators .indicator.locked {
+    color: #f87171;
+}
+
+[data-bs-theme="dark"] .note-indicators .indicator.shared {
+    color: #60a5fa;
+}

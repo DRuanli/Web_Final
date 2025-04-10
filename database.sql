@@ -90,3 +90,7 @@ ADD COLUMN otp VARCHAR(10) NULL,
 ADD COLUMN otp_expiry DATETIME NULL;
 
 ALTER TABLE users ADD COLUMN avatar_path VARCHAR(255) DEFAULT NULL;
+
+ALTER TABLE notes 
+ADD COLUMN note_password VARCHAR(255) NULL 
+AFTER is_password_protected;

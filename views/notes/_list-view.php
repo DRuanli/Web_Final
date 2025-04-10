@@ -24,6 +24,10 @@
                                     <span class="indicator locked" title="Password Protected"><i class="fas fa-lock"></i></span>
                                 <?php endif; ?>
                                 
+                                <?php if (isset($note['is_shared']) && $note['is_shared']): ?>
+                                    <span class="indicator shared" title="Shared with others"><i class="fas fa-share-alt"></i></span>
+                                <?php endif; ?>
+                                
                                 <?php if (isset($note['image_count']) && $note['image_count'] > 0): ?>
                                     <span class="indicator" title="<?= $note['image_count'] ?> image(s) attached">
                                         <i class="fas fa-image"></i>

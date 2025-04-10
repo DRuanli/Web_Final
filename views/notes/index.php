@@ -200,15 +200,27 @@
                                 
                                 <div class="card-footer bg-transparent d-flex justify-content-between align-items-center text-muted small">
                                     <div>
-                                        <?php if (isset($note['image_count']) && $note['image_count'] > 0): ?>
-                                            <span class="me-2" title="<?= $note['image_count'] ?> image(s) attached">
-                                                <i class="fas fa-image"></i> <?= $note['image_count'] ?>
+                                        <?php if (isset($note['is_pinned']) && $note['is_pinned']): ?>
+                                            <span class="me-2 text-primary" title="Pinned">
+                                                <i class="fas fa-thumbtack"></i>
                                             </span>
                                         <?php endif; ?>
                                         
                                         <?php if (isset($note['is_password_protected']) && $note['is_password_protected']): ?>
                                             <span class="me-2 text-warning" title="Password Protected">
                                                 <i class="fas fa-lock"></i>
+                                            </span>
+                                        <?php endif; ?>
+                                        
+                                        <?php if (isset($note['is_shared']) && $note['is_shared']): ?>
+                                            <span class="me-2 text-info" title="Shared with others">
+                                                <i class="fas fa-share-alt"></i>
+                                            </span>
+                                        <?php endif; ?>
+                                        
+                                        <?php if (isset($note['image_count']) && $note['image_count'] > 0): ?>
+                                            <span class="me-2" title="<?= $note['image_count'] ?> image(s) attached">
+                                                <i class="fas fa-image"></i> <?= $note['image_count'] ?>
                                             </span>
                                         <?php endif; ?>
                                     </div>
@@ -254,15 +266,23 @@
                             <tbody>
                                 <?php foreach ($data['notes'] as $note): ?>
                                     <tr class="<?= isset($note['is_pinned']) && $note['is_pinned'] ? 'table-primary' : '' ?>">
-                                        <td class="text-center">
-                                            <?php if (isset($note['is_pinned']) && $note['is_pinned']): ?>
-                                                <i class="fas fa-thumbtack text-primary" title="Pinned"></i>
-                                            <?php endif; ?>
-                                            
-                                            <?php if (isset($note['is_password_protected']) && $note['is_password_protected']): ?>
-                                                <i class="fas fa-lock text-warning" title="Password Protected"></i>
-                                            <?php endif; ?>
-                                        </td>
+                                    <td class="text-center">
+                                        <?php if (isset($note['is_pinned']) && $note['is_pinned']): ?>
+                                            <i class="fas fa-thumbtack text-primary me-1" title="Pinned"></i>
+                                        <?php endif; ?>
+                                        
+                                        <?php if (isset($note['is_password_protected']) && $note['is_password_protected']): ?>
+                                            <i class="fas fa-lock text-warning me-1" title="Password Protected"></i>
+                                        <?php endif; ?>
+                                        
+                                        <?php if (isset($note['is_shared']) && $note['is_shared']): ?>
+                                            <i class="fas fa-share-alt text-info me-1" title="Shared with others"></i>
+                                        <?php endif; ?>
+                                        
+                                        <?php if (isset($note['image_count']) && $note['image_count'] > 0): ?>
+                                            <i class="fas fa-image text-secondary me-1" title="<?= $note['image_count'] ?> image(s) attached"></i>
+                                        <?php endif; ?>
+                                    </td>
                                         <td>
                                             <strong>
                                                 <?php if (isset($note['is_password_protected']) && $note['is_password_protected']): ?>
