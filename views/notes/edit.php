@@ -255,10 +255,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Find this function in views/notes/edit.php and replace it with this version:
     function saveChanges() {
-        // Only auto-save if editing an existing note and content has changed
-        if (window.location.href.includes('/edit/') && 
-            (lastSavedContent !== contentInput.value || lastSavedTitle !== titleInput.value) &&
+        // Auto-save if content has changed and title is not empty
+        // Works for both new notes and editing existing notes
+        if ((lastSavedContent !== contentInput.value || lastSavedTitle !== titleInput.value) &&
             titleInput.value.trim() !== '') {
             
             // Show saving indicator
@@ -283,6 +284,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Show saved indicator
                     showSaveStatus('saved');
+                    
+                    // If this was a new note, redirect to edit page for this note
+                    if (data.note_id && !window.location.href.includes('/edit/')) {
+                        window.location.href = BASE_URL + '/notes/edit/' + data.note_id;
+                    }
                 } else {
                     // Show error indicator
                     showSaveStatus('error', data.errors?.general || 'Error saving');
@@ -372,3 +378,78 @@ document.addEventListener('DOMContentLoaded', function() {
     transition: opacity 0.3s ease;
 }
 </style>
+
+
+<!-- Add this at the end of the file, just before the closing script tag -->
+
+<?php if (defined('ENABLE_WEBSOCKETS') && ENABLE_WEBSOCKETS): ?>
+<!-- Script to initialize WebSocket support -->
+<script>
+    // Pass user ID to WebSocket script
+    const USER_ID = <?= Session::getUserId() ?>;
+    
+    <?php if (isset($data['note']['id'])): ?>
+    // Check if this is a shared note with edit permission
+    const noteId = <?= $data['note']['id'] ?>;
+    
+    // When note content changes, we'll need to send updates via WebSocket
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add visual collaboration indicators
+        const editorHeader = document.querySelector('.card-header');
+        if (editorHeader) {
+            // Check if user is not the owner
+            <?php if (isset($data['note']['user_id']) && $data['note']['user_id'] != Session::getUserId()): ?>
+                // Create collaboration indicator
+                const collaborationIndicator = document.createElement('div');
+                collaborationIndicator.className = 'collaboration-indicator ms-2 badge bg-primary d-flex align-items-center';
+                collaborationIndicator.innerHTML = '<i class="fas fa-users me-1"></i> Collaborative Editing';
+                
+                // Insert after header title
+                const headerTitle = editorHeader.querySelector('h4');
+                if (headerTitle) {
+                    headerTitle.parentNode.insertBefore(collaborationIndicator, headerTitle.nextSibling);
+                }
+            <?php endif; ?>
+            
+            // Create active users indicator
+            const activeUsersIndicator = document.createElement('div');
+            activeUsersIndicator.id = 'active-users';
+            activeUsersIndicator.className = 'active-users-indicator ms-auto badge bg-light text-dark border';
+            activeUsersIndicator.innerHTML = '<i class="fas fa-user me-1"></i> Just you';
+            
+            // Insert before options button
+            const optionsButton = editorHeader.querySelector('#toggle-options');
+            if (optionsButton) {
+                optionsButton.parentNode.insertBefore(activeUsersIndicator, optionsButton);
+            }
+        }
+    });
+    <?php endif; ?>
+</script>
+
+<!-- WebSocket notification sound -->
+<audio id="notification-sound" preload="auto" style="display: none;">
+    <source src="<?= ASSETS_URL ?>/sounds/notification.mp3" type="audio/mpeg">
+</audio>
+
+<!-- Load WebSocket client script -->
+<script src="<?= ASSETS_URL ?>/js/websocket-client.js"></script>
+
+<style>
+.collaboration-indicator {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.6rem;
+}
+
+.active-users-indicator {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.6rem;
+}
+
+.remote-cursor {
+    position: absolute;
+    pointer-events: none;
+    z-index: 1000;
+}
+</style>
+<?php endif; ?>
