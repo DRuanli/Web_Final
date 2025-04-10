@@ -188,6 +188,9 @@ switch ($page) {
                 $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
                 $controller->delete($id);
                 break;
+            case 'process':
+                $controller->processRequest();
+                break;
             default:
                 $controller->index();
                 break;

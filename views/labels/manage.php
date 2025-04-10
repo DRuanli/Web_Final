@@ -41,7 +41,7 @@
         <div class="label-form-container">
             <h3>Create New Label</h3>
             
-            <form id="label-form">
+            <form id="label-form" method="POST" action="<?= BASE_URL ?>/labels/create">
                 <div class="form-group">
                     <label for="label-name">Label Name</label>
                     <input type="text" id="label-name" name="name" class="form-control" required>

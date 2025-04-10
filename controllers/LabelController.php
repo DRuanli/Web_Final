@@ -70,7 +70,7 @@ class LabelController {
     }
     
     // Create a new label (AJAX)
-    private function createLabel($user_id) {
+    protected function createLabel($user_id) {
         $name = trim($_POST['name'] ?? '');
         
         if (empty($name)) {
@@ -86,6 +86,34 @@ class LabelController {
         
         header('Content-Type: application/json');
         echo json_encode($result);
+    }
+
+    public function create() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $user_id = Session::getUserId();
+            $name = trim($_POST['name'] ?? '');
+            
+            if (empty($name)) {
+                Session::setFlash('error', 'Label name is required');
+                header('Location: ' . BASE_URL . '/labels');
+                exit;
+            }
+            
+            $result = $this->label->create($user_id, $name);
+            
+            if ($result['success']) {
+                Session::setFlash('success', 'Label created successfully');
+            } else {
+                Session::setFlash('error', $result['message']);
+            }
+            
+            header('Location: ' . BASE_URL . '/labels');
+            exit;
+        }
+        
+        // If not a POST request, redirect to labels page
+        header('Location: ' . BASE_URL . '/labels');
+        exit;
     }
     
     // Update a label (AJAX)

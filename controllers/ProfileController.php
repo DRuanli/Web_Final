@@ -1,11 +1,20 @@
 <?php
 require_once MODELS_PATH . '/User.php';
+require_once MODELS_PATH . '/Note.php';
+require_once MODELS_PATH . '/Label.php';
+require_once MODELS_PATH . '/SharedNote.php';
 
 class ProfileController {
     private $user;
+    private $note;
+    private $label;
+    private $sharedNote;
     
     public function __construct() {
         $this->user = new User();
+        $this->note = new Note();
+        $this->label = new Label();
+        $this->sharedNote = new SharedNote();
     }
     
     // Display user profile
@@ -20,16 +29,89 @@ class ProfileController {
             exit;
         }
         
+        // Get actual statistics
+        $stats = $this->getUserStatistics($user_id);
+        
         // Set page data
         $data = [
             'pageTitle' => 'My Profile',
-            'user' => $user
+            'user' => $user,
+            'stats' => $stats
         ];
         
         // Load view
         include VIEWS_PATH . '/components/header.php';
         include VIEWS_PATH . '/profile/view.php';
         include VIEWS_PATH . '/components/footer.php';
+    }
+    
+    // Get user statistics from database
+    private function getUserStatistics($user_id) {
+        // Count total notes
+        $totalNotes = $this->countUserNotes($user_id);
+        
+        // Count total labels
+        $totalLabels = $this->countUserLabels($user_id);
+        
+        // Count shared notes
+        $sharedNotes = $this->countSharedNotes($user_id);
+        
+        // Count uploaded images
+        $uploadedImages = $this->countUploadedImages($user_id);
+        
+        return [
+            'total_notes' => $totalNotes,
+            'total_labels' => $totalLabels,
+            'shared_notes' => $sharedNotes,
+            'uploaded_images' => $uploadedImages
+        ];
+    }
+    
+    // Count user's notes
+    private function countUserNotes($user_id) {
+        $db = getDB();
+        $stmt = $db->prepare("SELECT COUNT(*) as count FROM notes WHERE user_id = ?");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        return $row['count'];
+    }
+    
+    // Count user's labels
+    private function countUserLabels($user_id) {
+        $db = getDB();
+        $stmt = $db->prepare("SELECT COUNT(*) as count FROM labels WHERE user_id = ?");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        return $row['count'];
+    }
+    
+    // Count notes shared with user
+    private function countSharedNotes($user_id) {
+        $db = getDB();
+        $stmt = $db->prepare("SELECT COUNT(*) as count FROM shared_notes WHERE recipient_id = ?");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        return $row['count'];
+    }
+    
+    // Count images uploaded by user
+    private function countUploadedImages($user_id) {
+        $db = getDB();
+        $stmt = $db->prepare("
+            SELECT COUNT(*) as count FROM images 
+            WHERE note_id IN (SELECT id FROM notes WHERE user_id = ?)
+        ");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        return $row['count'];
     }
     
     // Display and process profile edit form

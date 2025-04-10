@@ -121,8 +121,7 @@
                                         <i class="fas fa-sticky-note"></i>
                                     </div>
                                     <div class="fs-5 mt-2">Total Notes</div>
-                                    <!-- This data should come from the controller -->
-                                    <div class="fs-2 fw-bold">12</div>
+                                    <div class="fs-2 fw-bold"><?= $data['stats']['total_notes'] ?></div>
                                 </div>
                             </div>
                             
@@ -132,8 +131,7 @@
                                         <i class="fas fa-tag"></i>
                                     </div>
                                     <div class="fs-5 mt-2">Total Labels</div>
-                                    <!-- This data should come from the controller -->
-                                    <div class="fs-2 fw-bold">5</div>
+                                    <div class="fs-2 fw-bold"><?= $data['stats']['total_labels'] ?></div>
                                 </div>
                             </div>
                             
@@ -143,8 +141,7 @@
                                         <i class="fas fa-share-alt"></i>
                                     </div>
                                     <div class="fs-5 mt-2">Shared Notes</div>
-                                    <!-- This data should come from the controller -->
-                                    <div class="fs-2 fw-bold">3</div>
+                                    <div class="fs-2 fw-bold"><?= $data['stats']['shared_notes'] ?></div>
                                 </div>
                             </div>
                             
@@ -154,8 +151,7 @@
                                         <i class="fas fa-image"></i>
                                     </div>
                                     <div class="fs-5 mt-2">Uploaded Images</div>
-                                    <!-- This data should come from the controller -->
-                                    <div class="fs-2 fw-bold">7</div>
+                                    <div class="fs-2 fw-bold"><?= $data['stats']['uploaded_images'] ?></div>
                                 </div>
                             </div>
                         </div>
