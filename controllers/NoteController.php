@@ -629,26 +629,47 @@ class NoteController {
         ];
         
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $recipient_email = trim($_POST['recipient_email'] ?? '');
+            $recipient_emails = isset($_POST['recipient_emails']) ? $_POST['recipient_emails'] : [];
             $can_edit = isset($_POST['can_edit']) && $_POST['can_edit'] == '1';
             
-            if (empty($recipient_email)) {
-                $data['errors']['recipient_email'] = 'Recipient email is required';
-            } elseif (!filter_var($recipient_email, FILTER_VALIDATE_EMAIL)) {
-                $data['errors']['recipient_email'] = 'Invalid email format';
+            if (empty($recipient_emails)) {
+                $data['errors']['recipient_emails'] = 'At least one recipient email is required';
             }
             
             if (empty($data['errors'])) {
-                // Try to share the note
-                $result = $this->sharedNote->shareNote($id, $user_id, $recipient_email, $can_edit);
+                $success_count = 0;
+                $failed_emails = [];
                 
-                if ($result['success']) {
-                    Session::setFlash('success', 'Note shared successfully');
-                    header('Location: ' . BASE_URL . '/notes/share/' . $id);
-                    exit;
-                } else {
-                    $data['errors']['general'] = $result['message'];
+                // Try to share with each recipient
+                foreach ($recipient_emails as $email) {
+                    $email = trim($email);
+                    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                        $failed_emails[] = $email . ' (invalid format)';
+                        continue;
+                    }
+                    
+                    $result = $this->sharedNote->shareNote($id, $user_id, $email, $can_edit);
+                    
+                    if ($result['success']) {
+                        $success_count++;
+                    } else {
+                        $failed_emails[] = $email . ' (' . $result['message'] . ')';
+                    }
                 }
+                
+                // Prepare result message
+                if ($success_count > 0) {
+                    $message = "Note shared successfully with {$success_count} recipient(s)";
+                    if (!empty($failed_emails)) {
+                        $message .= ". Failed to share with: " . implode(", ", $failed_emails);
+                    }
+                    Session::setFlash('success', $message);
+                } else {
+                    Session::setFlash('error', "Failed to share note with any recipients: " . implode(", ", $failed_emails));
+                }
+                
+                header('Location: ' . BASE_URL . '/notes/share/' . $id);
+                exit;
             }
         }
         
@@ -656,6 +677,34 @@ class NoteController {
         include VIEWS_PATH . '/components/header.php';
         include VIEWS_PATH . '/notes/share.php';
         include VIEWS_PATH . '/components/footer.php';
+    }
+
+    // Update share permissions
+    public function updateShare($id, $share_id, $can_edit) {
+        $user_id = Session::getUserId();
+        
+        // Get note
+        $note = $this->note->getById($id);
+        
+        // Check if note exists and belongs to the user
+        if (!$note || $note['user_id'] != $user_id) {
+            Session::setFlash('error', 'Note not found or access denied');
+            header('Location: ' . BASE_URL . '/notes');
+            exit;
+        }
+        
+        // Update share permissions
+        $result = $this->sharedNote->updateSharePermissions($share_id, $user_id, $can_edit);
+        
+        if ($result['success']) {
+            Session::setFlash('success', 'Sharing permissions updated successfully');
+        } else {
+            Session::setFlash('error', $result['message']);
+        }
+        
+        // Redirect back to share page
+        header('Location: ' . BASE_URL . '/notes/share/' . $id);
+        exit;
     }
     
     // Remove sharing for a user

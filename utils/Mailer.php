@@ -178,3 +178,98 @@ function sendOTPEmail($user_email, $user_name, $otp) {
         return sendEmail($user_email, $subject, $message);
     }
 }
+
+// Add these functions to utils/Mailer.php
+
+// Send email notification for shared note
+function sendNoteSharedEmail($recipient_email, $recipient_name, $owner_name, $note_title, $permission_type) {
+    $subject = "Note Shared With You - " . APP_NAME;
+    
+    $message = "
+    <html>
+    <head>
+        <title>Note Shared With You</title>
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .button { display: inline-block; padding: 10px 20px; background-color: #4a89dc; color: white; 
+                     text-decoration: none; border-radius: 5px; margin: 20px 0; }
+            .footer { margin-top: 30px; font-size: 12px; color: #777; }
+            .permission { font-weight: bold; color: " . ($permission_type == 'edit' ? '#4a89dc' : '#6c757d') . "; }
+        </style>
+    </head>
+    <body>
+        <div class='container'>
+            <h2>Note Shared With You</h2>
+            <p>Hello " . htmlspecialchars($recipient_name) . ",</p>
+            <p><strong>" . htmlspecialchars($owner_name) . "</strong> has shared a note with you:</p>
+            <p style='font-size: 18px; padding: 10px; background-color: #f8f9fa; border-left: 4px solid #4a89dc;'>\"" . htmlspecialchars($note_title) . "\"</p>
+            <p>You have <span class='permission'>" . ($permission_type == 'edit' ? 'edit' : 'view-only') . "</span> access to this note.</p>
+            <p>Log in to " . APP_NAME . " to access this shared note:</p>
+            <p><a href='" . BASE_URL . "/notes/shared' class='button'>View Shared Notes</a></p>
+            <div class='footer'>
+                <p>Best regards,<br>The " . APP_NAME . " Team</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    ";
+    
+    // Use PHPMailer if available, otherwise use default function
+    if (hasPhpMailer()) {
+        return sendEmailWithPhpMailer($recipient_email, $subject, $message);
+    } else {
+        return sendEmail($recipient_email, $subject, $message);
+    }
+}
+
+// Send email notification for share permission changes
+function sendSharePermissionChangedEmail($recipient_email, $recipient_name, $owner_name, $note_title, $new_permission) {
+    $subject = "Note Sharing Permissions Updated - " . APP_NAME;
+    
+    $message = "
+    <html>
+    <head>
+        <title>Note Sharing Permissions Updated</title>
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .button { display: inline-block; padding: 10px 20px; background-color: #4a89dc; color: white; 
+                     text-decoration: none; border-radius: 5px; margin: 20px 0; }
+            .footer { margin-top: 30px; font-size: 12px; color: #777; }
+            .permission { font-weight: bold; color: " . ($new_permission == 'edit' ? '#4a89dc' : '#6c757d') . "; }
+        </style>
+    </head>
+    <body>
+        <div class='container'>
+            <h2>Note Sharing Permissions Updated</h2>
+            <p>Hello " . htmlspecialchars($recipient_name) . ",</p>
+            <p><strong>" . htmlspecialchars($owner_name) . "</strong> has updated your access permissions for the following note:</p>
+            <p style='font-size: 18px; padding: 10px; background-color: #f8f9fa; border-left: 4px solid #4a89dc;'>\"" . htmlspecialchars($note_title) . "\"</p>
+            <p>Your new permission level is: <span class='permission'>" . ($new_permission == 'edit' ? 'Edit Access' : 'View-Only Access') . "</span></p>
+            <p>Log in to " . APP_NAME . " to access this shared note:</p>
+            <p><a href='" . BASE_URL . "/notes/shared' class='button'>View Shared Notes</a></p>
+            <div class='footer'>
+                <p>Best regards,<br>The " . APP_NAME . " Team</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    ";
+    
+    // Use PHPMailer if available, otherwise use default function
+    if (hasPhpMailer()) {
+        return sendEmailWithPhpMailer($recipient_email, $subject, $message);
+    } else {
+        return sendEmail($recipient_email, $subject, $message);
+    }
+}
+
+// Helper function to use plain PHP mail function when PHPMailer is not available
+function sendEmail($to, $subject, $message) {
+    $headers = "MIME-Version: 1.0" . "\r\n";
+    $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
+    $headers .= "From: " . MAIL_FROM_NAME . " <" . MAIL_FROM_ADDRESS . ">" . "\r\n";
+    
+    return mail($to, $subject, $message, $headers);
+}

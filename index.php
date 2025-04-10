@@ -102,60 +102,72 @@ switch ($page) {
         $controller->resetPassword();
         break;
         
+    // Update the notes case in the switch statement in index.php
     case 'notes':
-            include_once 'controllers/NoteController.php';
-            $controller = new NoteController();
-            
-            // Get action from URL if available
-            $action = isset(explode('/', $url)[1]) ? explode('/', $url)[1] : 'index';
-            
-            switch ($action) {
-                case 'create':
-                    $controller->create();
-                    break;
-                case 'store':
-                    $controller->store();
-                    break;
-                case 'edit':
-                    $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
-                    $controller->edit($id);
-                    break;
-                case 'update':
-                    $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
-                    $controller->update($id);
-                    break;
-                case 'delete':
-                    $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
-                    $controller->delete($id);
-                    break;
-                case 'share':
-                    $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
-                    $controller->share($id);
-                    break;
-                case 'view':
-                    $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
-                    $controller->view($id);
-                    break;
-                case 'shared':
-                    $controller->shared();
-                    break;
-                case 'toggle-pin':
-                    $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
-                    $controller->togglePin($id);
-                    break;
-                case 'toggle-password':  // Add this route
-                    $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
-                    $controller->togglePasswordProtection($id);
-                    break;
-                case 'verify-password':  // Add this route
-                    $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
-                    $controller->verifyPassword($id);
-                    break;
-                default:
-                    $controller->index();
-                    break;
-            }
-            break;
+        include_once 'controllers/NoteController.php';
+        $controller = new NoteController();
+        
+        // Get action from URL if available
+        $action = isset(explode('/', $url)[1]) ? explode('/', $url)[1] : 'index';
+        
+        switch ($action) {
+            case 'create':
+                $controller->create();
+                break;
+            case 'store':
+                $controller->store();
+                break;
+            case 'edit':
+                $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
+                $controller->edit($id);
+                break;
+            case 'update':
+                $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
+                $controller->update($id);
+                break;
+            case 'delete':
+                $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
+                $controller->delete($id);
+                break;
+            case 'share':
+                $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
+                $controller->share($id);
+                break;
+            case 'view':
+                $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
+                $controller->view($id);
+                break;
+            case 'shared':
+                $controller->shared();
+                break;
+            case 'toggle-pin':
+                $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
+                $controller->togglePin($id);
+                break;
+            case 'toggle-password':
+                $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
+                $controller->togglePasswordProtection($id);
+                break;
+            case 'verify-password':
+                $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
+                $controller->verifyPassword($id);
+                break;
+            case 'remove-share':
+                $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
+                $share_id = isset(explode('/', $url)[3]) ? explode('/', $url)[3] : null;
+                $controller->removeShare($id, $share_id);
+                break;
+            case 'update-share':
+                $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
+                $share_id = isset(explode('/', $url)[3]) ? explode('/', $url)[3] : null;
+                $can_edit = isset(explode('/', $url)[4]) ? explode('/', $url)[4] : 0;
+                $controller->updateShare($id, $share_id, $can_edit);
+                break;
+            default:
+                $controller->index();
+                break;
+        }
+        break;
         
     case 'labels':
         include_once 'controllers/LabelController.php';
