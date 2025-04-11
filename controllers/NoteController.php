@@ -90,7 +90,7 @@ class NoteController {
     public function store() {
         // Check if request is AJAX
         $is_ajax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 
-                  strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+                   strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
         
         $user_id = Session::getUserId();
         $title = trim($_POST['title'] ?? '');
@@ -181,6 +181,7 @@ class NoteController {
         }
     }
     
+    
     // Display note for editing
     public function edit($id) {
         $user_id = Session::getUserId();
@@ -234,7 +235,7 @@ class NoteController {
     public function update($id) {
         // Check if request is AJAX
         $is_ajax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 
-                  strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+                   strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
         
         $user_id = Session::getUserId();
         

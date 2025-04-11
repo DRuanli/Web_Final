@@ -5,10 +5,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <h4 class="mb-0"><?= isset($data['note']['id']) ? 'Edit Note' : 'Create Note' ?></h4>
                     <div>
-                        <!-- Save button -->
-                        <button type="button" id="save-note-btn" class="btn btn-primary me-2">
-                            <i class="fas fa-save me-1"></i> Save
-                        </button>
+                        <!-- Options button only, no save button -->
                         <button type="button" class="btn btn-outline-primary" id="toggle-options">
                             <i class="fas fa-cog me-1"></i> Options
                         </button>
@@ -394,65 +391,6 @@ document.addEventListener('DOMContentLoaded', function() {
     labelCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', autoSave);
     });
-    
-    // Save button functionality
-    const saveButton = document.getElementById('save-note-btn');
-    if (saveButton && noteForm) {
-        saveButton.addEventListener('click', function() {
-            // Check if title is empty
-            if (titleInput && titleInput.value.trim() === '') {
-                showSaveStatus('error', 'Title is required');
-                titleInput.focus();
-                return;
-            }
-            
-            // Show saving indicator
-            showSaveStatus('saving');
-            
-            // Submit the form without waiting for auto-save
-            const formData = new FormData(noteForm);
-            
-            fetch(noteForm.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Update last saved content
-                    if (contentInput) lastSavedContent = contentInput.value;
-                    if (titleInput) lastSavedTitle = titleInput.value;
-                    
-                    // Show saved indicator
-                    showSaveStatus('saved', 'Note saved successfully');
-                    
-                    // Show upload errors if any
-                    if (data.upload_errors && data.upload_errors.length > 0) {
-                        const errorMsg = 'Note saved, but there were issues with image uploads: ' + data.upload_errors.join(', ');
-                        console.error(errorMsg);
-                        setTimeout(() => {
-                            showSaveStatus('warning', errorMsg);
-                        }, 2500);
-                    }
-                    
-                    // If this was a new note, redirect to edit page
-                    if (data.note_id && !window.location.href.includes('/edit/')) {
-                        window.location.href = BASE_URL + '/notes/edit/' + data.note_id;
-                    }
-                } else {
-                    // Show error indicator
-                    showSaveStatus('error', data.errors?.general || 'Error saving note');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showSaveStatus('error', 'Network error');
-            });
-        });
-    }
     
     // Delete image
     const deleteImageLinks = document.querySelectorAll('.delete-image');
