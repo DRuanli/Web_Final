@@ -211,12 +211,14 @@ class AuthController {
             'email' => '',
             'errors' => [],
             'token' => $_GET['token'] ?? '',
-            'step' => isset($_GET['token']) ? 'new_password' : 'request'
+            'step' => isset($_GET['token']) ? 'new_password' : 'request',
+            'reset_method' => $_GET['method'] ?? 'link' // Default to link method
         ];
         
         // Process request form
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $data['step'] === 'request') {
             $email = trim($_POST['email'] ?? '');
+            $reset_method = $_POST['reset_method'] ?? 'link';
             
             if (empty($email)) {
                 $data['errors']['email'] = 'Email is required';
@@ -225,24 +227,42 @@ class AuthController {
             }
             
             if (empty($data['errors'])) {
-                $result = $this->user->createPasswordResetToken($email);
-                
-                if ($result['success']) {
-                    // Send reset email
-                    sendPasswordResetEmail($email, $result['display_name'], $result['reset_token']);
+                if ($reset_method === 'link') {
+                    // Link-based reset
+                    $result = $this->user->createPasswordResetToken($email);
                     
-                    // Set flash message
-                    Session::setFlash('success', 'Password reset link has been sent to your email!');
-                    
-                    // Redirect to prevent re-submission
-                    header('Location: ' . BASE_URL . '/login');
-                    exit;
+                    if ($result['success']) {
+                        // Send reset email
+                        sendPasswordResetEmail($email, $result['display_name'], $result['reset_token']);
+                        
+                        // Set flash message
+                        Session::setFlash('success', 'Password reset link has been sent to your email!');
+                        
+                        // Redirect to prevent re-submission
+                        header('Location: ' . BASE_URL . '/login');
+                        exit;
+                    } else {
+                        $data['errors']['general'] = $result['message'];
+                    }
                 } else {
-                    $data['errors']['general'] = $result['message'];
+                    // OTP-based reset
+                    $result = $this->user->generateOTP($email);
+                    
+                    if ($result['success']) {
+                        // Send OTP email
+                        sendOTPEmail($email, $result['display_name'], $result['otp']);
+                        
+                        // Redirect to OTP verification page
+                        header('Location: ' . BASE_URL . '/verify-otp?email=' . urlencode($email));
+                        exit;
+                    } else {
+                        $data['errors']['general'] = $result['message'];
+                    }
                 }
             }
             
             $data['email'] = $email;
+            $data['reset_method'] = $reset_method;
         }
         
         // Process new password form
@@ -325,12 +345,12 @@ class AuthController {
                 $result = $this->user->verifyOTP($email, $otp);
                 
                 if ($result) {
-                    // Redirect to new password page
-                    Session::set('reset_verified', true);
+                    // If OTP is verified, show form to set new password
+                    Session::set('otp_verified', true);
                     Session::set('reset_email', $email);
-                    Session::set('reset_method', 'otp');
                     
-                    header('Location: ' . BASE_URL . '/reset-password/new-password');
+                    // Redirect to a new page to set password
+                    header('Location: ' . BASE_URL . '/reset-password/new-password?email=' . urlencode($email) . '&otp_verified=1');
                     exit;
                 } else {
                     $data['errors']['general'] = 'Invalid or expired OTP';
@@ -343,4 +363,69 @@ class AuthController {
         // Load view
         include VIEWS_PATH . '/auth/verify-otp.php';
     }
+
+    // Process new password after OTP verification
+    public function setNewPassword() {
+        // Check if already logged in
+        if (Session::isLoggedIn()) {
+            header('Location: ' . BASE_URL);
+            exit;
+        }
+        
+        // Check if OTP was verified
+        $email = $_GET['email'] ?? '';
+        $otp_verified = $_GET['otp_verified'] ?? false;
+        
+        if (empty($email) || !$otp_verified || !Session::get('otp_verified')) {
+            Session::setFlash('error', 'Invalid request. Please restart the password reset process.');
+            header('Location: ' . BASE_URL . '/reset-password');
+            exit;
+        }
+        
+        $data = [
+            'title' => 'Set New Password',
+            'email' => $email,
+            'errors' => []
+        ];
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $password = $_POST['password'] ?? '';
+            $confirm_password = $_POST['confirm_password'] ?? '';
+            
+            if (empty($password)) {
+                $data['errors']['password'] = 'Password is required';
+            } elseif (strlen($password) < 8) {
+                $data['errors']['password'] = 'Password must be at least 8 characters';
+            }
+            
+            if ($password !== $confirm_password) {
+                $data['errors']['confirm_password'] = 'Passwords do not match';
+            }
+            
+            if (empty($data['errors'])) {
+                // Reset password after OTP verification
+                $result = $this->user->resetPasswordWithOTP($email, null, $password);
+                
+                if ($result['success']) {
+                    // Clear OTP verification session data
+                    Session::remove('otp_verified');
+                    Session::remove('reset_email');
+                    
+                    // Set flash message
+                    Session::setFlash('success', 'Your password has been reset successfully. You can now login with your new password.');
+                    
+                    // Redirect to login
+                    header('Location: ' . BASE_URL . '/login');
+                    exit;
+                } else {
+                    $data['errors']['general'] = $result['message'];
+                }
+            }
+        }
+        
+        // Load view for new password
+        include VIEWS_PATH . '/auth/set-new-password.php';
+    }
+
+
 }

@@ -12,7 +12,20 @@
         </div>
     <?php endif; ?>
     
+    <?php if (Session::hasFlash('success')): ?>
+        <div class="alert alert-success">
+            <?= Session::getFlash('success') ?>
+        </div>
+    <?php endif; ?>
+    
+    <?php if (Session::hasFlash('error')): ?>
+        <div class="alert alert-danger">
+            <?= Session::getFlash('error') ?>
+        </div>
+    <?php endif; ?>
+    
     <div class="profile-card">
+        <!-- User Profile Form -->
         <form method="POST" class="profile-form">
             <div class="form-group">
                 <label for="display_name">Display Name</label>
@@ -34,37 +47,38 @@
                 </button>
                 <a href="<?= BASE_URL ?>/profile" class="btn btn-outline">Cancel</a>
             </div>
-
-            <div class="form-group">
-                <label>Profile Picture</label>
-                <div class="avatar-container">
-                    <?php if (isset($data['user']['avatar_path']) && !empty($data['user']['avatar_path'])): ?>
-                        <img src="<?= BASE_URL ?>/uploads/avatars/<?= $data['user']['avatar_path'] ?>" alt="Avatar" class="profile-avatar">
-                    <?php else: ?>
-                        <div class="avatar-placeholder">
-                            <i class="fas fa-user"></i>
-                        </div>
-                    <?php endif; ?>
-                </div>
-                
-                <div class="avatar-upload">
-                    <form method="POST" action="<?= BASE_URL ?>/profile/upload-avatar" enctype="multipart/form-data">
-                        <input type="file" name="avatar" id="avatar-input" accept="image/jpeg,image/png">
-                        <label for="avatar-input" class="btn btn-outline">Choose New Image</label>
-                        <button type="submit" class="btn btn-primary">Upload</button>
-                    </form>
-                </div>
-                
+        </form>
+        
+        <!-- Avatar Form -->
+        <div class="mt-4 pt-4 border-top">
+            <h4>Profile Picture</h4>
+            
+            <div class="avatar-container mb-3">
                 <?php if (isset($data['user']['avatar_path']) && !empty($data['user']['avatar_path'])): ?>
-                    <div class="avatar-remove">
-                        <form method="POST" action="<?= BASE_URL ?>/profile/upload-avatar">
-                            <input type="hidden" name="remove_avatar" value="1">
-                            <button type="submit" class="btn btn-danger">Remove Avatar</button>
-                        </form>
+                    <img src="<?= BASE_URL ?>/uploads/avatars/<?= $data['user']['avatar_path'] ?>" alt="Avatar" class="profile-avatar">
+                <?php else: ?>
+                    <div class="avatar-placeholder">
+                        <i class="fas fa-user fa-4x"></i>
                     </div>
                 <?php endif; ?>
             </div>
-        </form>
+            
+            <form method="POST" action="<?= BASE_URL ?>/profile/upload-avatar" enctype="multipart/form-data" class="avatar-upload mb-3">
+                <div class="mb-3">
+                    <input type="file" class="form-control" name="avatar" id="avatar-input" accept="image/jpeg,image/png">
+                </div>
+                <button type="submit" class="btn btn-primary">Upload New Picture</button>
+            </form>
+            
+            <?php if (isset($data['user']['avatar_path']) && !empty($data['user']['avatar_path'])): ?>
+                <form method="POST" action="<?= BASE_URL ?>/profile/upload-avatar" class="avatar-remove">
+                    <input type="hidden" name="remove_avatar" value="1">
+                    <button type="submit" class="btn btn-outline-danger">
+                        <i class="fas fa-trash me-1"></i> Remove Picture
+                    </button>
+                </form>
+            <?php endif; ?>
+        </div>
     </div>
 </div>
 
@@ -112,6 +126,30 @@
 
 .text-muted {
     color: #6c757d;
+}
+
+.avatar-container {
+    text-align: center;
+}
+
+.profile-avatar {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 50%;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.avatar-placeholder {
+    width: 150px;
+    height: 150px;
+    margin: 0 auto;
+    border-radius: 50%;
+    background-color: #f8f9fa;
+    color: #adb5bd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 @media (max-width: 768px) {

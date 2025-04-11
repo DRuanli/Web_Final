@@ -16,10 +16,9 @@ Session::start();
 
 // Check if user is logged in, if not redirect to login page
 // Except for login, register, activation, password reset pages
-// Except for login, register, activation, password reset pages
 $allowed_pages = [
     'login', 'register', 'activate', 'reset-password',
-    'password-reset', 'verify-reset', 'new-password'
+    'password-reset', 'verify-reset', 'new-password', 'verify-otp'
 ];
 
 // Also check if the current path has .php extension (for direct access)
@@ -44,7 +43,6 @@ if (!Session::isLoggedIn() && !in_array($page, $allowed_pages)) {
     Session::set('redirect_url', $_SERVER['REQUEST_URI']);
     
     // Redirect to login page
-
     header('Location: ' . BASE_URL . '/login');
     exit;
 }
@@ -89,13 +87,6 @@ switch ($page) {
         $controller->verifyOTP();
         break;
     
-    case 'upload-avatar':
-        $controller->uploadAvatar();
-        break;
-    case 'save-preferences':
-        $controller->savePreferences();
-        break;  
-
     case 'reset-password':
         include_once 'controllers/AuthController.php';
         $controller = new AuthController();
@@ -213,6 +204,12 @@ switch ($page) {
                 break;
             case 'preferences':
                 $controller->preferences();
+                break;
+            case 'upload-avatar':
+                $controller->uploadAvatar();
+                break;
+            case 'save-preferences':
+                $controller->savePreferences();
                 break;
             default:
                 $controller->index();

@@ -14,7 +14,7 @@
             <div class="auth-header">
                 <h1><?= APP_NAME ?></h1>
                 <h2><?= $data['step'] === 'request' ? 'Reset Password' : 'Set New Password' ?></h2>
-                <p><?= $data['step'] === 'request' ? 'Enter your email to receive a password reset link' : 'Create a new password for your account' ?></p>
+                <p><?= $data['step'] === 'request' ? 'Enter your email to reset your password' : 'Create a new password for your account' ?></p>
             </div>
             
             <?php if (Session::hasFlash('success')): ?>
@@ -49,8 +49,38 @@
                         <?php endif; ?>
                     </div>
                     
+                    <!-- Reset Method Selection -->
+                    <div class="form-group">
+                        <label>Reset Method</label>
+                        <div class="reset-methods">
+                            <div class="reset-method-option">
+                                <input type="radio" name="reset_method" id="method-link" value="link" 
+                                       <?= (!isset($data['reset_method']) || $data['reset_method'] === 'link') ? 'checked' : '' ?>>
+                                <label for="method-link">
+                                    <i class="fas fa-link reset-icon"></i>
+                                    <div class="reset-method-info">
+                                        <div class="reset-method-title">Reset Link</div>
+                                        <div class="reset-method-desc">Receive a password reset link via email</div>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <div class="reset-method-option">
+                                <input type="radio" name="reset_method" id="method-otp" value="otp" 
+                                       <?= (isset($data['reset_method']) && $data['reset_method'] === 'otp') ? 'checked' : '' ?>>
+                                <label for="method-otp">
+                                    <i class="fas fa-key reset-icon"></i>
+                                    <div class="reset-method-info">
+                                        <div class="reset-method-title">Verification Code (OTP)</div>
+                                        <div class="reset-method-desc">Receive a one-time code via email</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="form-action">
-                        <button type="submit" class="btn btn-primary">Send Reset Link</button>
+                        <button type="submit" class="btn btn-primary">Send Reset Instructions</button>
                     </div>
                 </form>
             <?php else: ?>
@@ -100,6 +130,64 @@
             </div>
         </div>
     </div>
+    
+    <style>
+    /* Additional styling for reset method options */
+    .reset-methods {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .reset-method-option {
+        position: relative;
+    }
+    
+    .reset-method-option input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+        height: 0;
+        width: 0;
+    }
+    
+    .reset-method-option label {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        border: 1px solid #dcdfe6;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .reset-method-option input[type="radio"]:checked + label {
+        border-color: #3498db;
+        background-color: #f0f7ff;
+    }
+    
+    .reset-icon {
+        font-size: 24px;
+        color: #3498db;
+        margin-right: 15px;
+        width: 30px;
+        text-align: center;
+    }
+    
+    .reset-method-info {
+        flex: 1;
+    }
+    
+    .reset-method-title {
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    
+    .reset-method-desc {
+        font-size: 12px;
+        color: #7f8c8d;
+    }
+    </style>
     
     <script>
         function togglePasswordVisibility(inputId) {
