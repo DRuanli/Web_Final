@@ -15,7 +15,6 @@ class NoteController {
     }
     
     // Display all notes (dashboard)
-    // Display all notes (dashboard)
     public function index() {
         // Get user ID from session
         $user_id = Session::getUserId();
@@ -119,8 +118,12 @@ class NoteController {
                 }
                 
                 // Process uploaded images
-                if (!empty($_FILES['images']['name'][0])) {
-                    $this->processImageUploads($note_id);
+                $upload_errors = [];
+                if (isset($_FILES['images']) && !empty($_FILES['images']['name'][0])) {
+                    $upload_result = $this->processImageUploads($note_id);
+                    if (!$upload_result['success']) {
+                        $upload_errors = $upload_result['errors'];
+                    }
                 }
                 
                 if ($is_ajax) {
@@ -129,12 +132,17 @@ class NoteController {
                     echo json_encode([
                         'success' => true,
                         'message' => 'Note created successfully',
-                        'note_id' => $note_id
+                        'note_id' => $note_id,
+                        'upload_errors' => $upload_errors
                     ]);
                     exit;
                 } else {
                     // Redirect to notes page
-                    Session::setFlash('success', 'Note created successfully');
+                    if (!empty($upload_errors)) {
+                        Session::setFlash('warning', 'Note created, but some images could not be uploaded: ' . implode(', ', $upload_errors));
+                    } else {
+                        Session::setFlash('success', 'Note created successfully');
+                    }
                     header('Location: ' . BASE_URL . '/notes');
                     exit;
                 }
@@ -233,8 +241,8 @@ class NoteController {
         // Get current note
         $note = $this->note->getById($id);
         
-        // Check if note exists and belongs to the user
-        if (!$note || $note['user_id'] != $user_id) {
+        // Check if note exists and belongs to the user or is shared with edit permissions
+        if (!$note || ($note['user_id'] != $user_id && !$this->sharedNote->canEditSharedNote($id, $user_id))) {
             if ($is_ajax) {
                 header('Content-Type: application/json');
                 echo json_encode([
@@ -273,8 +281,12 @@ class NoteController {
                 }
                 
                 // Process uploaded images
-                if (!empty($_FILES['images']['name'][0])) {
-                    $this->processImageUploads($id);
+                $upload_errors = [];
+                if (isset($_FILES['images']) && !empty($_FILES['images']['name'][0])) {
+                    $upload_result = $this->processImageUploads($id);
+                    if (!$upload_result['success']) {
+                        $upload_errors = $upload_result['errors'];
+                    }
                 }
                 
                 if ($is_ajax) {
@@ -282,12 +294,17 @@ class NoteController {
                     header('Content-Type: application/json');
                     echo json_encode([
                         'success' => true,
-                        'message' => 'Note updated successfully'
+                        'message' => 'Note updated successfully',
+                        'upload_errors' => $upload_errors
                     ]);
                     exit;
                 } else {
                     // Redirect to notes page
-                    Session::setFlash('success', 'Note updated successfully');
+                    if (!empty($upload_errors)) {
+                        Session::setFlash('warning', 'Note updated, but some images could not be uploaded: ' . implode(', ', $upload_errors));
+                    } else {
+                        Session::setFlash('success', 'Note updated successfully');
+                    }
                     header('Location: ' . BASE_URL . '/notes');
                     exit;
                 }
@@ -760,9 +777,49 @@ class NoteController {
     
     // Process image uploads for a note
     private function processImageUploads($note_id) {
+        // Define the upload directory path
+        $upload_dir = UPLOADS_PATH;
+        
         // Check if upload directory exists, create if not
-        if (!file_exists(UPLOADS_PATH)) {
-            mkdir(UPLOADS_PATH, 0755, true);
+        if (!file_exists($upload_dir)) {
+            try {
+                if (!mkdir($upload_dir, 0777, true)) {
+                    return [
+                        'success' => false,
+                        'files' => [],
+                        'errors' => ["Failed to create upload directory: " . $upload_dir]
+                    ];
+                }
+                // Set full permissions to ensure it's writable
+                chmod($upload_dir, 0777);
+            } catch (Exception $e) {
+                return [
+                    'success' => false,
+                    'files' => [],
+                    'errors' => ["Exception creating upload directory: " . $e->getMessage()]
+                ];
+            }
+        }
+        
+        // Even if directory exists, make sure it's writable
+        if (!is_writable($upload_dir)) {
+            // Try to fix permissions
+            try {
+                chmod($upload_dir, 0777);
+                if (!is_writable($upload_dir)) {
+                    return [
+                        'success' => false,
+                        'files' => [],
+                        'errors' => ["Upload directory is not writable: " . $upload_dir]
+                    ];
+                }
+            } catch (Exception $e) {
+                return [
+                    'success' => false,
+                    'files' => [],
+                    'errors' => ["Cannot set permissions on upload directory: " . $e->getMessage()]
+                ];
+            }
         }
         
         $allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
@@ -770,6 +827,14 @@ class NoteController {
         
         $uploaded_files = [];
         $errors = [];
+        
+        if (!isset($_FILES['images']) || !is_array($_FILES['images']['name'])) {
+            return [
+                'success' => false,
+                'files' => [],
+                'errors' => ["No files uploaded or invalid file structure"]
+            ];
+        }
         
         foreach ($_FILES['images']['name'] as $key => $name) {
             if (empty($name)) continue;
@@ -800,24 +865,30 @@ class NoteController {
             // Generate unique filename
             $ext = pathinfo($name, PATHINFO_EXTENSION);
             $new_filename = uniqid('note_' . $note_id . '_') . '.' . $ext;
-            $destination = UPLOADS_PATH . '/' . $new_filename;
+            $destination = $upload_dir . '/' . $new_filename;
             
             // Move the file
             if (move_uploaded_file($tmp_name, $destination)) {
+                // Ensure the uploaded file has correct permissions
+                chmod($destination, 0644);
+                
                 $uploaded_files[] = [
                     'note_id' => $note_id,
                     'file_name' => $name,
                     'file_path' => $new_filename
                 ];
             } else {
-                $errors[] = "Failed to save file $name";
+                $errors[] = "Failed to save file $name to $destination";
             }
         }
         
         // Save files to database
         if (!empty($uploaded_files)) {
             foreach ($uploaded_files as $file) {
-                $this->note->addImage($file['note_id'], $file['file_name'], $file['file_path']);
+                $result = $this->note->addImage($file['note_id'], $file['file_name'], $file['file_path']);
+                if (!$result['success']) {
+                    $errors[] = "Failed to save file {$file['file_name']} to database: " . ($result['message'] ?? 'Unknown error');
+                }
             }
         }
         

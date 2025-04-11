@@ -76,7 +76,7 @@
                                             <i class="fas fa-cloud-upload-alt fs-3 mb-2"></i>
                                             <div>Drop images here or click to browse</div>
                                         </label>
-                                        <input type="file" name="images[]" id="note-images" class="d-none" multiple accept="image/*">
+                                        <input type="file" name="images[]" id="note-images" class="d-none" multiple accept="image/jpeg, image/jpg, image/png, image/gif">
                                     </div>
                                     
                                     <?php if (!empty($data['note']['images'])): ?>
@@ -122,7 +122,7 @@
 </div>
 
 <!-- Auto-save indicator -->
-<div id="save-status" class="position-fixed bottom-0 end-0 m-3 p-2 px-3 rounded toast align-items-center" role="alert" aria-live="assertive" aria-atomic="true" style="display: none;">
+<div id="save-status" class="position-fixed bottom-0 end-0 m-3 p-2 px-3 rounded toast align-items-center" role="alert" aria-live="assertive" aria-atomic="true" style="display: none; z-index: 1050;">
     <div class="d-flex">
         <div class="toast-body d-flex align-items-center">
             <span id="saving-icon" class="me-2"><i class="fas fa-circle-notch fa-spin"></i></span>
@@ -132,28 +132,56 @@
     </div>
 </div>
 
+<style>
+/* Custom styles for drag and drop */
+.border-dashed {
+    border-style: dashed !important;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.border-dashed:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+    border-color: #007bff;
+}
+
+/* Note content area */
+#note-content {
+    min-height: 300px;
+    resize: vertical;
+}
+
+/* Animation for auto-save toast */
+.toast {
+    transition: opacity 0.3s ease;
+}
+</style>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Toggle options panel
     const toggleOptionsBtn = document.getElementById('toggle-options');
     const optionsPanel = document.querySelector('.options-panel');
     
-    toggleOptionsBtn.addEventListener('click', function() {
-        if (optionsPanel.style.display === 'none') {
-            optionsPanel.style.display = 'block';
-            toggleOptionsBtn.innerHTML = '<i class="fas fa-times me-1"></i> Close Options';
-        } else {
-            optionsPanel.style.display = 'none';
-            toggleOptionsBtn.innerHTML = '<i class="fas fa-cog me-1"></i> Options';
-        }
-    });
+    if (toggleOptionsBtn && optionsPanel) {
+        toggleOptionsBtn.addEventListener('click', function() {
+            if (optionsPanel.style.display === 'none') {
+                optionsPanel.style.display = 'block';
+                toggleOptionsBtn.innerHTML = '<i class="fas fa-times me-1"></i> Close Options';
+            } else {
+                optionsPanel.style.display = 'none';
+                toggleOptionsBtn.innerHTML = '<i class="fas fa-cog me-1"></i> Options';
+            }
+        });
+    }
     
     // Preview uploaded images
     const imageInput = document.getElementById('note-images');
     const previewContainer = document.getElementById('image-preview-container');
     const previewsDiv = document.getElementById('image-previews');
+    const titleInput = document.getElementById('note-title');
+    const contentInput = document.getElementById('note-content');
     
-    if (imageInput) {
+    if (imageInput && previewContainer && previewsDiv) {
         imageInput.addEventListener('change', function() {
             previewsDiv.innerHTML = '';
             
@@ -182,6 +210,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         previewsDiv.appendChild(preview);
                     }
                 }
+                
+                // Trigger auto-save when files are selected if title is not empty
+                if (titleInput && titleInput.value.trim() !== '') {
+                    // Initiate save with the selected files
+                    autoSave();
+                } else if (titleInput) {
+                    // Show message that title is required
+                    showSaveStatus('error', 'Title is required to save with images');
+                }
             } else {
                 previewContainer.classList.add('d-none');
             }
@@ -190,34 +227,36 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Auto-save functionality
     const noteForm = document.getElementById('note-form');
-    const titleInput = document.getElementById('note-title');
-    const contentInput = document.getElementById('note-content');
     const saveStatus = document.getElementById('save-status');
     const savingIcon = document.getElementById('saving-icon');
     const savedIcon = document.getElementById('saved-icon');
     const saveMessage = document.getElementById('save-message');
     
     let saveTimeout;
-    let lastSavedContent = contentInput.value;
-    let lastSavedTitle = titleInput.value;
+    let lastSavedContent = contentInput ? contentInput.value : '';
+    let lastSavedTitle = titleInput ? titleInput.value : '';
     let autoSaveEnabled = true;
     
     // Add event listener for unload event to prevent data loss
-    window.addEventListener('beforeunload', function(e) {
-        if (autoSaveEnabled && 
-            (lastSavedContent !== contentInput.value || lastSavedTitle !== titleInput.value) &&
-            titleInput.value.trim() !== '') {
-            // Auto-save before leaving page
-            saveChanges();
-            
-            // Show warning if there are unsaved changes
-            const message = 'You have unsaved changes. Are you sure you want to leave?';
-            e.returnValue = message;
-            return message;
-        }
-    });
+    if (noteForm) {
+        window.addEventListener('beforeunload', function(e) {
+            if (autoSaveEnabled && 
+                (lastSavedContent !== contentInput.value || lastSavedTitle !== titleInput.value) &&
+                titleInput.value.trim() !== '') {
+                // Auto-save before leaving page
+                saveChanges();
+                
+                // Show warning if there are unsaved changes
+                const message = 'You have unsaved changes. Are you sure you want to leave?';
+                e.returnValue = message;
+                return message;
+            }
+        });
+    }
     
     function showSaveStatus(status, message) {
+        if (!saveStatus) return;
+        
         saveStatus.style.display = 'block';
         
         if (status === 'saving') {
@@ -225,12 +264,12 @@ document.addEventListener('DOMContentLoaded', function() {
             savedIcon.style.display = 'none';
             saveMessage.textContent = message || 'Saving...';
             saveStatus.classList.add('bg-dark', 'text-white');
-            saveStatus.classList.remove('bg-success', 'bg-danger');
+            saveStatus.classList.remove('bg-success', 'bg-danger', 'bg-warning');
         } else if (status === 'saved') {
             savingIcon.style.display = 'none';
             savedIcon.style.display = 'inline-block';
             saveMessage.textContent = message || 'Saved';
-            saveStatus.classList.remove('bg-dark', 'bg-danger');
+            saveStatus.classList.remove('bg-dark', 'bg-danger', 'bg-warning');
             saveStatus.classList.add('bg-success', 'text-white');
             
             // Hide after 2 seconds
@@ -241,11 +280,31 @@ document.addEventListener('DOMContentLoaded', function() {
                     saveStatus.style.opacity = '1';
                 }, 300);
             }, 2000);
+        } else if (status === 'warning') {
+            savingIcon.style.display = 'none';
+            savedIcon.style.display = 'inline-block';
+            savedIcon.innerHTML = '<i class="fas fa-exclamation-triangle text-warning"></i>';
+            saveMessage.textContent = message || 'Warning';
+            saveStatus.classList.remove('bg-dark', 'bg-danger', 'bg-success');
+            saveStatus.classList.add('bg-warning', 'text-dark');
+            
+            // Hide after 5 seconds for warnings
+            setTimeout(() => {
+                saveStatus.style.opacity = '0';
+                setTimeout(() => {
+                    saveStatus.style.display = 'none';
+                    saveStatus.style.opacity = '1';
+                    // Reset icon
+                    if (savedIcon) {
+                        savedIcon.innerHTML = '<i class="fas fa-check text-success"></i>';
+                    }
+                }, 300);
+            }, 5000);
         } else if (status === 'error') {
             savingIcon.style.display = 'none';
             savedIcon.style.display = 'none';
             saveMessage.textContent = message || 'Error saving';
-            saveStatus.classList.remove('bg-dark', 'bg-success');
+            saveStatus.classList.remove('bg-dark', 'bg-success', 'bg-warning');
             saveStatus.classList.add('bg-danger', 'text-white');
             
             // Hide after 3 seconds
@@ -260,6 +319,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function saveChanges() {
+        if (!noteForm || !titleInput || !contentInput) return;
+        
         // Auto-save if content has changed and title is not empty
         if ((lastSavedContent !== contentInput.value || lastSavedTitle !== titleInput.value) &&
             titleInput.value.trim() !== '') {
@@ -287,6 +348,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Show saved indicator
                     showSaveStatus('saved');
                     
+                    // Show upload errors if any
+                    if (data.upload_errors && data.upload_errors.length > 0) {
+                        const errorMsg = 'Note saved, but there were issues with image uploads: ' + data.upload_errors.join(', ');
+                        console.error(errorMsg);
+                        setTimeout(() => {
+                            showSaveStatus('warning', errorMsg);
+                        }, 2500);
+                    }
+                    
                     // If this was a new note, redirect to edit page for this note
                     if (data.note_id && !window.location.href.includes('/edit/')) {
                         window.location.href = BASE_URL + '/notes/edit/' + data.note_id;
@@ -304,6 +374,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function autoSave() {
+        if (!noteForm) return;
+        
         // Clear any existing timeout
         clearTimeout(saveTimeout);
         
@@ -312,8 +384,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Add event listeners for auto-save
-    titleInput.addEventListener('input', autoSave);
-    contentInput.addEventListener('input', autoSave);
+    if (titleInput && contentInput) {
+        titleInput.addEventListener('input', autoSave);
+        contentInput.addEventListener('input', autoSave);
+    }
     
     // Add event listeners for label checkboxes
     const labelCheckboxes = document.querySelectorAll('input[name="labels[]"]');
@@ -323,8 +397,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Save button functionality
     const saveButton = document.getElementById('save-note-btn');
-    if (saveButton) {
+    if (saveButton && noteForm) {
         saveButton.addEventListener('click', function() {
+            // Check if title is empty
+            if (titleInput && titleInput.value.trim() === '') {
+                showSaveStatus('error', 'Title is required');
+                titleInput.focus();
+                return;
+            }
+            
             // Show saving indicator
             showSaveStatus('saving');
             
@@ -342,11 +423,20 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 if (data.success) {
                     // Update last saved content
-                    lastSavedContent = contentInput.value;
-                    lastSavedTitle = titleInput.value;
+                    if (contentInput) lastSavedContent = contentInput.value;
+                    if (titleInput) lastSavedTitle = titleInput.value;
                     
                     // Show saved indicator
                     showSaveStatus('saved', 'Note saved successfully');
+                    
+                    // Show upload errors if any
+                    if (data.upload_errors && data.upload_errors.length > 0) {
+                        const errorMsg = 'Note saved, but there were issues with image uploads: ' + data.upload_errors.join(', ');
+                        console.error(errorMsg);
+                        setTimeout(() => {
+                            showSaveStatus('warning', errorMsg);
+                        }, 2500);
+                    }
                     
                     // If this was a new note, redirect to edit page
                     if (data.note_id && !window.location.href.includes('/edit/')) {
@@ -366,11 +456,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Delete image
     const deleteImageLinks = document.querySelectorAll('.delete-image');
-    deleteImageLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            if (confirm('Are you sure you want to delete this image?')) {
+    
+    if (deleteImageLinks.length > 0) {
+        deleteImageLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                if (!confirm('Are you sure you want to delete this image?')) {
+                    return;
+                }
+                
                 const imageId = this.getAttribute('data-id');
                 const imageElement = this.closest('.col');
                 
@@ -384,42 +479,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(data => {
                     if (data.success) {
                         // Remove the image element
-                        imageElement.remove();
+                        if (imageElement) {
+                            imageElement.remove();
+                            showSaveStatus('saved', 'Image deleted successfully');
+                        }
                     } else {
-                        alert('Error deleting image: ' + (data.message || 'Unknown error'));
+                        showSaveStatus('error', 'Error deleting image: ' + (data.message || 'Unknown error'));
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Network error while deleting image');
+                    showSaveStatus('error', 'Network error while deleting image');
                 });
-            }
+            });
         });
-    });
+    }
 });
 </script>
-
-<style>
-/* Custom styles for drag and drop */
-.border-dashed {
-    border-style: dashed !important;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.border-dashed:hover {
-    background-color: rgba(0, 123, 255, 0.05);
-    border-color: #007bff;
-}
-
-/* Note content area */
-#note-content {
-    min-height: 300px;
-    resize: vertical;
-}
-
-/* Animation for auto-save toast */
-.toast {
-    transition: opacity 0.3s ease;
-}
-</style>
