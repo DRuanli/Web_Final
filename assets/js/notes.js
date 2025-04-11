@@ -56,8 +56,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 const noteId = this.getAttribute('data-id');
                 const icon = this.querySelector('i');
                 
+                // Check if BASE_URL is defined, if not, get it from window location
+                const baseUrl = typeof BASE_URL !== 'undefined' ? BASE_URL : 
+                                window.location.protocol + '//' + window.location.host + '/note_app';
+                
                 // Send AJAX request
-                fetch(BASE_URL + '/notes/toggle-pin/' + noteId, {
+                fetch(`${baseUrl}/notes/toggle-pin/${noteId}`, {
                     method: 'POST',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest'
@@ -144,6 +148,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const imageId = this.getAttribute('data-id');
                 const imagePreview = this.closest('.image-preview');
+                
+                // Check if BASE_URL is defined, if not, get it from window location
+                const baseUrl = typeof BASE_URL !== 'undefined' ? BASE_URL : 
+                                window.location.protocol + '//' + window.location.host + '/note_app';
                 
                 // Send AJAX request
                 fetch(this.getAttribute('href'), {

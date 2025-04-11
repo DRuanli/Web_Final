@@ -41,6 +41,20 @@ if (Session::isLoggedIn()) {
         <link rel="manifest" href="<?= BASE_URL ?>/manifest.json">
         <meta name="theme-color" content="#4a89dc">
     <?php endif; ?>
+    
+    <!-- Define JavaScript variables for use in scripts -->
+    <script>
+        // Define BASE_URL for JavaScript use
+        const BASE_URL = "<?= BASE_URL ?>";
+        
+        <?php if (Session::isLoggedIn()): ?>
+        // Add user ID for WebSocket functionality
+        const USER_ID = <?= Session::getUserId() ?>;
+        
+        // Enable WebSockets based on config
+        const ENABLE_WEBSOCKETS = <?= defined('ENABLE_WEBSOCKETS') && ENABLE_WEBSOCKETS ? 'true' : 'false' ?>;
+        <?php endif; ?>
+    </script>
 </head>
 <body class="d-flex flex-column min-vh-100 bg-light" data-bs-theme="<?= $theme ?>">
     <?php if (Session::isLoggedIn()): ?>
