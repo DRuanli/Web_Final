@@ -35,67 +35,61 @@
                                 <?php endif; ?>
                             </div>
                         </td>
-                        <td class="note-title">
-                            <?php if (isset($note['is_password_protected']) && $note['is_password_protected']): ?>
-                                <a href="<?= BASE_URL ?>/notes/verify-password/<?= $note['id'] ?>">
-                                    <?= htmlspecialchars($note['title']) ?>
-                                </a>
-                            <?php else: ?>
-                                <a href="<?= BASE_URL ?>/notes/edit/<?= $note['id'] ?>">
-                                    <?= htmlspecialchars($note['title']) ?>
-                                </a>
-                            <?php endif; ?>
+                        <td>
+                            <strong>
+                                <?php if (isset($note['is_password_protected']) && $note['is_password_protected']): ?>
+                                    <a href="<?= BASE_URL ?>/notes/verify-password/<?= $note['id'] ?>">
+                                        <?= htmlspecialchars($note['title']) ?>
+                                    </a>
+                                <?php else: ?>
+                                    <a href="<?= BASE_URL ?>/notes/edit/<?= $note['id'] ?>">
+                                        <?= htmlspecialchars($note['title']) ?>
+                                    </a>
+                                <?php endif; ?>
+                            </strong>
                         </td>
                         <td class="note-content">
                             <?php 
                             $content = isset($note['content']) ? $note['content'] : '';
                             $preview = strip_tags($content);
-                            $preview = substr($preview, 0, 150);
-                            if (strlen($content) > 150) $preview .= '...';
+                            $preview = substr($preview, 0, 100);
+                            if (strlen($content) > 100) $preview .= '...';
                             echo htmlspecialchars($preview);
                             ?>
                         </td>
-                        <td class="note-labels">
+                        <td>
                             <?php if (isset($note['labels']) && !empty($note['labels'])): ?>
                                 <?php foreach ($note['labels'] as $label): ?>
-                                    <span class="label">
+                                    <span class="badge bg-light text-dark border me-1">
                                         <?= htmlspecialchars($label['name'] ?? '') ?>
                                     </span>
                                 <?php endforeach; ?>
                             <?php else: ?>
-                                <span class="no-labels">None</span>
+                                <small class="text-muted">None</small>
                             <?php endif; ?>
                         </td>
-                        <td class="note-date">
-                            <?php 
-                            if (isset($note['updated_at'])) {
-                                $updated = new DateTime($note['updated_at']);
-                                
-                                if ($updated->format('Y-m-d') === date('Y-m-d')) {
-                                    // Today, show time
-                                    echo 'Today at ' . $updated->format('g:i A');
-                                } else if ($updated->format('Y-m-d') === date('Y-m-d', strtotime('-1 day'))) {
-                                    // Yesterday
-                                    echo 'Yesterday at ' . $updated->format('g:i A');
-                                } else {
-                                    // Another day
+                        <td>
+                            <small>
+                                <?php 
+                                if (isset($note['updated_at'])) {
+                                    $updated = new DateTime($note['updated_at']);
                                     echo $updated->format('M j, Y g:i A');
                                 }
-                            }
-                            ?>
+                                ?>
+                            </small>
                         </td>
-                        <td class="note-actions">
-                            <div class="action-buttons">
-                                <button class="pin-note" data-id="<?= $note['id'] ?>" title="<?= isset($note['is_pinned']) && $note['is_pinned'] ? 'Unpin' : 'Pin' ?>">
-                                    <i class="fas fa-thumbtack <?= isset($note['is_pinned']) && $note['is_pinned'] ? 'pinned' : '' ?>"></i>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary pin-note" data-id="<?= $note['id'] ?>" title="<?= isset($note['is_pinned']) && $note['is_pinned'] ? 'Unpin' : 'Pin' ?>">
+                                    <i class="fas fa-thumbtack <?= isset($note['is_pinned']) && $note['is_pinned'] ? 'text-primary' : '' ?>"></i>
                                 </button>
-                                <a href="<?= BASE_URL ?>/notes/edit/<?= $note['id'] ?>" class="edit-note" title="Edit">
+                                <a href="<?= BASE_URL ?>/notes/edit/<?= $note['id'] ?>" class="btn btn-outline-secondary" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <a href="<?= BASE_URL ?>/notes/share/<?= $note['id'] ?>" class="share-note" title="Share">
+                                <a href="<?= BASE_URL ?>/notes/share/<?= $note['id'] ?>" class="btn btn-outline-info" title="Share">
                                     <i class="fas fa-share-alt"></i>
                                 </a>
-                                <a href="<?= BASE_URL ?>/notes/delete/<?= $note['id'] ?>" class="delete-note" title="Delete">
+                                <a href="<?= BASE_URL ?>/notes/delete/<?= $note['id'] ?>" class="btn btn-outline-danger delete-note" title="Delete">
                                     <i class="fas fa-trash"></i>
                                 </a>
                             </div>

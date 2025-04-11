@@ -120,21 +120,6 @@ switch ($page) {
                 $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
                 $controller->delete($id);
                 break;
-            case 'share':
-                $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
-                $controller->share($id);
-                break;
-            case 'view':
-                $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
-                $controller->view($id);
-                break;
-            case 'shared':
-                $controller->shared();
-                break;
-            case 'toggle-pin':
-                $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
-                $controller->togglePin($id);
-                break;
             case 'toggle-password':
                 $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
                 $controller->togglePasswordProtection($id);
@@ -142,17 +127,6 @@ switch ($page) {
             case 'verify-password':
                 $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
                 $controller->verifyPassword($id);
-                break;
-            case 'remove-share':
-                $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
-                $share_id = isset(explode('/', $url)[3]) ? explode('/', $url)[3] : null;
-                $controller->removeShare($id, $share_id);
-                break;
-            case 'update-share':
-                $id = isset(explode('/', $url)[2]) ? explode('/', $url)[2] : null;
-                $share_id = isset(explode('/', $url)[3]) ? explode('/', $url)[3] : null;
-                $can_edit = isset(explode('/', $url)[4]) ? explode('/', $url)[4] : 0;
-                $controller->updateShare($id, $share_id, $can_edit);
                 break;
             default:
                 $controller->index();

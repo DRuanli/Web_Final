@@ -18,6 +18,14 @@ class NoteController {
     public function index() {
         // Get user ID from session
         $user_id = Session::getUserId();
+
+        $notes = $this->note->getUserNotes($user_id, $label_filter, $search);
+
+        if (empty($notes)) {
+            echo "<!-- DEBUG: No notes found for user ID: $user_id -->";
+        } else {
+            echo "<!-- DEBUG: Found " . count($notes) . " notes for user ID: $user_id -->";
+        }
         
         // Get view preference (default to grid)
         $view = isset($_GET['view']) && $_GET['view'] === 'list' ? 'list' : 'grid';

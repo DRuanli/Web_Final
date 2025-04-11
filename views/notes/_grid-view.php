@@ -62,47 +62,6 @@
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
-                
-                <div class="note-footer">
-                    <div class="note-indicators">
-                        <?php if (isset($note['is_pinned']) && $note['is_pinned']): ?>
-                            <span class="indicator pinned" title="Pinned"><i class="fas fa-thumbtack"></i></span>
-                        <?php endif; ?>
-                        
-                        <?php if (isset($note['is_password_protected']) && $note['is_password_protected']): ?>
-                            <span class="indicator locked" title="Password Protected"><i class="fas fa-lock"></i></span>
-                        <?php endif; ?>
-                        
-                        <?php if (isset($note['is_shared']) && $note['is_shared']): ?>
-                            <span class="indicator shared" title="Shared with others"><i class="fas fa-share-alt"></i></span>
-                        <?php endif; ?>
-                        
-                        <?php if (isset($note['image_count']) && $note['image_count'] > 0): ?>
-                            <span class="indicator" title="<?= $note['image_count'] ?> image(s) attached">
-                                <i class="fas fa-image"></i> <?= $note['image_count'] ?>
-                            </span>
-                        <?php endif; ?>
-                    </div>
-                    
-                    <div class="note-date">
-                        <?php 
-                        if (isset($note['updated_at'])) {
-                            $updated = new DateTime($note['updated_at']);
-                            
-                            if ($updated->format('Y-m-d') === date('Y-m-d')) {
-                                // Today, show time
-                                echo 'Today at ' . $updated->format('g:i A');
-                            } else if ($updated->format('Y-m-d') === date('Y-m-d', strtotime('-1 day'))) {
-                                // Yesterday
-                                echo 'Yesterday at ' . $updated->format('g:i A');
-                            } else {
-                                // Another day
-                                echo $updated->format('M j, Y');
-                            }
-                        }
-                        ?>
-                    </div>
-                </div>
             </div>
         </div>
     <?php endforeach; ?>
